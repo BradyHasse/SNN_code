@@ -4,3 +4,6 @@
 *.pickle
 *.npy
 *.pdf
+*.cdr
+*.pyc
+
