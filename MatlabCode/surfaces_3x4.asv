@@ -2,8 +2,14 @@
 %to allow for its use across seperate use cases
 
 %Used to plot surfaces (actually imagesc) on a subplot figure, and in their own figures.
-function surfaces_3x4(mat_pre, k,Monk, CodeDir)
-f1 = figure('Position', [-1919 41 1920 963]);
+function surfaces_3x4(mat_pre, k,savePath)
+    mkdir([savePath '\png\']);
+    mkdir([savePath '\emf\']);
+
+
+%     mkdir(sprintf('%s\\Figures\\Monk_%s\\WeightedContribution\\emf', CodeDir, Monk))
+%     mkdir(sprintf('%s\\Figures\\Monk_%s\\WeightedContribution\\png', CodeDir, Monk))
+    f1 = figure('Position', [-1919 41 1920 963]);
     maxval = max(mat_pre, [],'all');
     minval = min(mat_pre, [],'all');
     for i = 1:size(mat_pre,3)%for all input groups
@@ -27,18 +33,22 @@ f1 = figure('Position', [-1919 41 1920 963]);
                 colorbar
             end
             if jj == 2
-                saveas(f2, sprintf('%s\\Figures\\Monk_%s\\WeightedContribution\\emf\\%02ims_inputG%i_epoch%i.emf', CodeDir, Monk, k,i,j), 'meta');
-                saveas(f2, sprintf('%s\\Figures\\Monk_%s\\WeightedContribution\\png\\%02ims_inputG%i_epoch%i.png', CodeDir, Monk, k,i,j))
+
+                saveas(f2, sprintf('%s\\emf\\%02ims_inputG%i_epoch%i.emf', savePath, k,i,j), 'meta');
+                saveas(f2, sprintf('%s\\emf\\%02ims_inputG%i_epoch%i.png', savePath, k,i,j));
+
+%                 saveas(f2, sprintf('%s\\Figures\\Monk_%s\\WeightedContribution\\emf\\%02ims_inputG%i_epoch%i.emf', CodeDir, Monk, k,i,j), 'meta');
+%                 saveas(f2, sprintf('%s\\Figures\\Monk_%s\\WeightedContribution\\png\\%02ims_inputG%i_epoch%i.png', CodeDir, Monk, k,i,j))
                 close(f2)
             end
             end
-%             pause(.1)
+            pause(.1)
         end
         
     end
-%     pause(1)
+    pause(1)
     saveas(f1, sprintf('%s\\Figures\\Monk_%s\\WeightedContribution\\emf\\%02ims_subplots.emf', CodeDir, Monk, k), 'meta');
-    saveas(f1, sprintf('%s\\Figures\\Monk_%s\\WeightedContribution\\png\\%02ims__subplots.png', CodeDir, Monk, k))
+    saveas(f1, sprintf('%s\\Figures\\Monk_%s\\WeightedContribution\\png\\%02ims_subplots.png', CodeDir, Monk, k))
     close all
 
 end

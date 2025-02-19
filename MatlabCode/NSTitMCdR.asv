@@ -71,18 +71,16 @@ weights = importdata([CodeDir,'\Data\Monk',Monk,'_weights_',MI{1,Mkind},'__',MI{
 sta = STA.sta_pot;
 threshold = STA.threshold;
 %% Make 20ms STA figure
-savePath = sprintf('%s\\Figures\\Monk_%s\\STA', CodeDir, Monk);
 XTick = -20:2.5:0;
 XTickL = cellstr(string(XTick));
-plotSTA(sta, threshold, XTick, XTickL, (-199:0)/10, 'Membrane Potential (a.u.)', savePath, '20ms');
+plotSTA(sta, threshold, XTick, XTickL, (-199:0)/10, 'Membrane Potential (a.u.)', [CodeDir '\Figures\STA\'], Monk, '20ms');
 
 %% Make 5ms STA figure
 XTick = -5:1:0;
 XTickL = cellstr(string(XTick));
-plotSTA(sta(:, end-49:end), threshold, XTick, XTickL, (-49:0)/10, 'Membrane Potential (a.u.)', savePath, '05ms');
+plotSTA(sta(:, end-49:end), threshold, XTick, XTickL, (-49:0)/10, 'Membrane Potential (a.u.)', [CodeDir '\Figures\STA\'], Monk, '05ms');
 
 %% surface plots for causal inputs
-savePath = sprintf('%s\\Figures\\Monk_%s\\SurfacePlots', CodeDir, Monk);
 [causal_in2, SCI2] = causalStruct2Mat(causal_in);
 [CTS_in2, ~] = causalStruct2Mat(CTS_in);%16x90x2x4x3 - target x input x range (trigger or build-up) x input gorup x analysis epoch
 
@@ -94,6 +92,7 @@ causal_in2(isnan(causal_in2))=0;
 
 causal_smoothw = circularsmooth(causal_in2w,10);
 causal_smooth =  circularsmooth(causal_in2 ,10);
+% need to do this still.
 %save data toa  new format for Andy
 % for k = 1:SCI2(3) 
 %     CScell = cell(SCI2(4), SCI2(5));
@@ -111,7 +110,7 @@ causal_smooth =  circularsmooth(causal_in2 ,10);
 %Plot individual imagesc and as subplots
 for k = 1:size(causal_smoothw,3)%for each window length (trigger and build-up)
     mat_pre = squeeze(causal_smoothw(:,:,k,:,:));
-    surfaces_3x4(mat_pre, k,savePath)
+    surfaces_3x4(mat_pre, k,Monk, CodeDir)
 end
 %% Weights and firing rates of inputs triggering an output spike.
 ClearCloseClc()

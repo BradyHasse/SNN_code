@@ -29,8 +29,8 @@ function plotRatesPatches(xax_labelsms, histo_data, ylimset, mevms, ylab, xlab, 
         xlabel(xlab);
         
         % Save figures
-        saveas(f1, sprintf('%s\\emf\\Monk_histo%s_unit_%02i_patch.emf', savePath, AvsP, j), 'meta');
-        saveas(f1, sprintf('%s\\png\\Monk_histo%s_unit_%02i_patch.png', savePath, AvsP, j));
+        saveas(f1, sprintf('%s\\emf\\histo%s_unit_%02i_patch.emf', savePath, AvsP, j), 'meta');
+        saveas(f1, sprintf('%s\\png\\histo%s_unit_%02i_patch.png', savePath, AvsP, j));
 %         pause(1)
         close all;
     end

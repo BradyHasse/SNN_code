@@ -1,10 +1,7 @@
-%need to add in filename %s\\Figures\\Monk_%s\\Monk%s_WeightedContribution_%02ims_ig%i_e%i
-%to allow for its use across seperate use cases
-
 %Used to plot surfaces (actually imagesc) on a subplot figure, and in their own figures.
-function surfaces_3x4(mat_pre, k,Monk, CodeDir)
-    mkdir(sprintf('%s\\Figures\\Monk_%s\\WeightedContribution\\emf', CodeDir, Monk))
-    mkdir(sprintf('%s\\Figures\\Monk_%s\\WeightedContribution\\png', CodeDir, Monk))
+function surfaces_3x4(mat_pre, k,savePath)
+    mkdir([savePath '\png\']);
+    mkdir([savePath '\emf\']);
     f1 = figure('Position', [-1919 41 1920 963]);
     maxval = max(mat_pre, [],'all');
     minval = min(mat_pre, [],'all');
@@ -29,8 +26,9 @@ function surfaces_3x4(mat_pre, k,Monk, CodeDir)
                 colorbar
             end
             if jj == 2
-                saveas(f2, sprintf('%s\\Figures\\Monk_%s\\WeightedContribution\\emf\\%02ims_inputG%i_epoch%i.emf', CodeDir, Monk, k,i,j), 'meta');
-                saveas(f2, sprintf('%s\\Figures\\Monk_%s\\WeightedContribution\\png\\%02ims_inputG%i_epoch%i.png', CodeDir, Monk, k,i,j))
+
+                saveas(f2, sprintf('%s\\emf\\%02ims_inputG%i_epoch%i.emf', savePath, k,i,j), 'meta');
+                saveas(f2, sprintf('%s\\png\\%02ims_inputG%i_epoch%i.png', savePath, k,i,j));
                 close(f2)
             end
             end
@@ -39,8 +37,9 @@ function surfaces_3x4(mat_pre, k,Monk, CodeDir)
         
     end
     pause(1)
-    saveas(f1, sprintf('%s\\Figures\\Monk_%s\\WeightedContribution\\emf\\%02ims_subplots.emf', CodeDir, Monk, k), 'meta');
-    saveas(f1, sprintf('%s\\Figures\\Monk_%s\\WeightedContribution\\png\\%02ims_subplots.png', CodeDir, Monk, k))
+    saveas(f1, sprintf('%s\\emf\\%02ims_subplots.emf', savePath, k), 'meta');
+    saveas(f1, sprintf('%s\\png\\%02ims_subplots.png', savePath, k));
+
     close all
 
 end
