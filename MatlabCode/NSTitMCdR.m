@@ -81,7 +81,7 @@ plotSTA(sta(:, end-49:end), threshold, XTick, XTickL, (-49:0)/10, 'Membrane Pote
 
 %% surface plots for causal inputs
 [causal_in2, SCI2] = causalStruct2Mat(causal_in);
-[CTS_in2, ~] = causalStruct2Mat(CTS_in);
+[CTS_in2, ~] = causalStruct2Mat(CTS_in);%16x90x2x4x3 - target x input x range (trigger or build-up) x input gorup x analysis epoch
 
 weights2 = permute(weights,[3,2,4,1,5]);
 weights2 = repmat(weights2, SCI2(1),1,SCI2(3),1,SCI2(5));
@@ -91,7 +91,7 @@ causal_in2(isnan(causal_in2))=0;
 
 causal_smoothw = circularsmooth(causal_in2w,10);
 causal_smooth =  circularsmooth(causal_in2 ,10);
-
+% need to do this still.
 %save data toa  new format for Andy
 % for k = 1:SCI2(3) 
 %     CScell = cell(SCI2(4), SCI2(5));
@@ -108,49 +108,9 @@ causal_smooth =  circularsmooth(causal_in2 ,10);
 
 %Plot individual imagesc and as subplots
 for k = 1:size(causal_smoothw,3)%for each window length (trigger and build-up)
-    f1 = figure('Position', [-1919 41 1920 963]);
     mat_pre = squeeze(causal_smoothw(:,:,k,:,:));
-    maxval = max(mat_pre, [],'all');
-    minval = min(mat_pre, [],'all');
-    for i = 1:size(mat_pre,3)%for all input groups
-        for j = 1:size(mat_pre,4)%for each epoch
-            mat_ = mat_pre(:,:,i,j);
-            for jj = 1:2
-            if jj == 1
-            subplot(3,4,(i+(3-j)*4))
-            else
-                f2 = figure('Position', [-1919 41 1920 963]);
-            end
-            colormap("turbo")
-            imagesc(imresize(mat_, 4))
-            axis image
-            set(gca,'YDir','normal')
-            xlabel('input prefered direction (degrees)')
-            ylabel('target direction (degrees)')
-            clim([minval, maxval])
-                
-            if i ==4
-                colorbar
-            end
-            if jj == 2
-                saveas(f2)
-
-
-                saveas(f2,[CodeDir '\Figures\' 'Monk_' Monk '\' 'Monk' Monk '_' sprintf('WeightedContribution_%02ims_ig%i_e%i', k,i,j) '.emf'],'meta')
-                saveas(f2,[CodeDir '\Figures\' 'Monk_' Monk '\' 'Monk' Monk '_' sprintf('WeightedContribution_%02ims_ig%i_e%i', k,i,j) '.png'])
-                close(f2)
-            end
-            end
-            pause(.1)
-        end
-        
-    end
-    pause(1)
-    saveas(f1,[CodeDir '\Figures\' 'Monk' Monk '_' sprintf('WeightedContribution_%02ims', k) '.emf'],'meta')
-    saveas(f1,[CodeDir '\Figures\' 'Monk' Monk '_' sprintf('WeightedContribution_%02ims', k) '.png'])
-    close all
+    surfaces_3x4(mat_pre, k,Monk, CodeDir)
 end
-
 %% firing rate and weights histogram -trigger
 ClearCloseClc()
 

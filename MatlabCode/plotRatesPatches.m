@@ -1,3 +1,5 @@
+%Used to plot firing rates with patches showing when each analysis period is
+
 function plotRatesPatches(xax_labelsms, histo_data, ylimset, mevms, ylab, xlab, savePath, AvsP,colors, STA)
     mkdir([savePath 'png\']);
     mkdir([savePath 'emf\']);
