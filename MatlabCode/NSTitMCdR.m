@@ -3,7 +3,7 @@ CodeDir = 'C:\Users\BAH150\.spyder-py3\Brian2\Brady';  % Set up the directory he
 addpath([CodeDir '\MatlabCode'])  %Where do all of the functions live?
 ClearCloseClc()
 % Set up environment variables and constants
-Monk = 'C';  % Set the monk up here. Options: 'C' or 'N'
+Monk = 'N';  % Set the monk up here. Options: 'C' or 'N'
 [colors, MI, Mkind, TargetDir_N, PD_N, PD_N2] = setupEnvironment(Monk, CodeDir);
 
 %% load in data for PCA from actual (Figure 1)
@@ -266,8 +266,72 @@ saveas(f1,[CodeDir '\Figures\' 'Monk_' Monk '\SurfacePlots\png\' sprintf('Contri
 close all
 end
 
+%% example showing how weights are trained.
+ClearCloseClc()
+EWT = importdata([CodeDir,'\Data\Monk' Monk '_example_weight_training_',MI{2,Mkind},'.mat']);
 
+OE = EWT.outexample;
+IE = EWT.inexample;
 
+axmax = 1.2*max([OE IE]);
+t = 0.0001:0.0001:axmax;
+tc = 0.020;%20ms tau
+y0 = 0.01;%APre = 0.01
+yt = y0*exp(-t/tc);
+yt = [flip(yt), y0,yt];
+t = [0 t];
+t2 = 0*t;
+w = t2;%keep track of weights
+midind = length(t2);
 
+for i = 1:length(IE)
+    i2 = round(IE(i)/.0001);
+    t2 = t2 + yt((midind-i2):(midind*2-i2-1));
+end
 
+for i = 1:length(OE)
+    i2 = round(OE(i)/.0001);
+    w(i2+1) = t2(i2+1)-mean(t2);
+end
+w = cumsum(w);
+
+tpot = (t2-mean(t2))/range(t2);
+wpot = (w/range(w))-2;
+OEpotx = repmat(OE,2,1);
+OEpoty = [interp1(t,tpot,OE);interp1(t,wpot,OE)];
+
+IEpotx = repmat(IE,2,1);
+IEpoty = ones(size(IEpotx));
+IEpoty(2,:) = interp1(t,tpot,IE);
+
+% fignames = {'_example_potential_contribution';'_example_output_raster';...
+%     '_example_input_raster';'_example_weight_change'};
+
+f1 = figure('Position',[-1919 41 1920 963]);
+hold on
+for i = 1:4
+    switch i
+        case 1
+            plot(OEpotx, OEpoty, 'm:','LineWidth',2)
+            plot(OE, zeros(size(OE))-.5,'k|','MarkerSize',20,'LineWidth',3)
+        case 2
+            plot(IEpotx, IEpoty, 'r:','LineWidth',2)
+            plot(IE, zeros(size(IE))+1,'k|','MarkerSize',20,'LineWidth',3)
+        case 3
+            plot(t,tpot,'k','LineWidth',3)
+            yline(0)
+        case 4
+            plot(t,wpot,'k','LineWidth',3)
+            yline(-2)
+    end
+
+%     set(f1.Children, 'box','off','LineWidth',3,'FontSize',32,'fontname','Arial','TickDir','out','XLim', [0 1])%'YTickLabel',[],'YTick',[]
+%     set(f1.Children, 'box','off','LineWidth',3,'FontSize',32,'fontname','Arial','TickDir','out','XLim', [0 axmax])
+%     saveas(f1,[CodeDir '\Figures\Monk' Monk fignames{i} '.emf'],'meta')
+%     saveas(f1,[CodeDir '\Figures\Monk' Monk fignames{i} '.png'])
+end
+set(f1.Children, 'box','off','LineWidth',3,'FontSize',32,'fontname','Arial','TickDir','out','XLim', [0 1])%'YTickLabel',[],'YTick',[]
+saveas(f1,[CodeDir '\Figures\Monk' Monk '_example_weight_train.emf'],'meta')
+saveas(f1,[CodeDir '\Figures\Monk' Monk '_example_weight_train.png'])
+close all
 
