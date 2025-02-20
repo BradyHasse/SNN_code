@@ -3,7 +3,7 @@ CodeDir = 'C:\Users\BAH150\.spyder-py3\Brian2\Brady';  % Set up the directory he
 addpath([CodeDir '\MatlabCode'])  %Where do all of the functions live?
 ClearCloseClc()
 % Set up environment variables and constants
-Monk = 'N';  % Set the monk up here. Options: 'C' or 'N'
+Monk = 'C';  % Set the monk up here. Options: 'C' or 'N'
 [colors, MI, Mkind, TargetDir_N, PD_N, PD_N2] = setupEnvironment(Monk, CodeDir);
 
 %% load in data for PCA from actual (Figure 1)
@@ -27,17 +27,26 @@ plotFiringRates(xax_labels*1000, histo_allP, ylimset, (mean_ev([7,12,10])*1000)-
 plotRatesPatches(xax_labels*1000, histo_allP , ylimset, (mean_ev([7,12,10])*1000)-200, 'Firing Rate (spk/sec)', 'Time (msec)', savePath, 'A',colors, STA);
 
 %% Perform Rotated PCA on the data
-rs = performRotatedPCA(histo_all);
-
-% Save the rotated PCA results
-save([CodeDir '\Data\Monk' Monk '_rotPCA_Actual_.mat'], 'rs');
-
-% Plot the rotated PCA components
-savePath = sprintf('%s\\Figures\\Monk_%s\\rPCA', CodeDir, Monk);
-plotRotatedPCATrajectories(rs, mean_ev, xax_labels*1000,colors, savePath);
-
-% Plot three pairs of PCA scores 2D plots
-plotRotatedPCATrajectories2d(rs,colors, savePath);
+for i = 1:2% for actual and predicted
+    if i == 1
+        rs = performRotatedPCA(histo_all);
+        AorP = "Actual";
+    else
+        rs = performRotatedPCA(histo_allP);
+        AorP = "Predicted";
+    end
+    
+    % Save the rotated PCA results
+    save([CodeDir '\Data\Monk' Monk '_rotPCA_Actual_.mat'], 'rs');
+    save(sprintf('\\Data\\Monk_%s\\rPCA', CodeDir, Monk,AorP), 'rs');
+    
+    % Plot the rotated PCA components
+    savePath = sprintf('%s\\Figures\\Monk_%s\\rPCA', CodeDir, Monk);
+    plotRotatedPCATrajectories(rs, mean_ev, xax_labels*1000,colors, savePath,AorP);
+    
+    % Plot three pairs of PCA scores 2D plots
+    plotRotatedPCATrajectories2d(rs,colors, savePath,AorP);
+end
 %% load in data for input FR, weights, and actual vs predicted FR (Figure 3)
 ClearCloseClc()
 input_FR = importdata([CodeDir,'\Data\Monk',Monk,'_input_FR_',MI{2,Mkind},'.mat']);
@@ -71,16 +80,18 @@ weights = importdata([CodeDir,'\Data\Monk',Monk,'_weights_',MI{1,Mkind},'__',MI{
 sta = STA.sta_pot;
 threshold = STA.threshold;
 %% Make 20ms STA figure
+savePath = sprintf('%s\\Figures\\Monk_%s\\STA', CodeDir, Monk);
 XTick = -20:2.5:0;
 XTickL = cellstr(string(XTick));
-plotSTA(sta, threshold, XTick, XTickL, (-199:0)/10, 'Membrane Potential (a.u.)', [CodeDir '\Figures\STA\'], Monk, '20ms');
+plotSTA(sta, threshold, XTick, XTickL, (-199:0)/10, 'Membrane Potential (a.u.)', savePath, '20ms');
 
 %% Make 5ms STA figure
 XTick = -5:1:0;
 XTickL = cellstr(string(XTick));
-plotSTA(sta(:, end-49:end), threshold, XTick, XTickL, (-49:0)/10, 'Membrane Potential (a.u.)', [CodeDir '\Figures\STA\'], Monk, '05ms');
+plotSTA(sta(:, end-49:end), threshold, XTick, XTickL, (-49:0)/10, 'Membrane Potential (a.u.)', savePath, '05ms');
 
 %% surface plots for causal inputs
+savePath = sprintf('%s\\Figures\\Monk_%s\\SurfacePlots', CodeDir, Monk);
 [causal_in2, SCI2] = causalStruct2Mat(causal_in);
 [CTS_in2, ~] = causalStruct2Mat(CTS_in);%16x90x2x4x3 - target x input x range (trigger or build-up) x input gorup x analysis epoch
 
@@ -92,7 +103,6 @@ causal_in2(isnan(causal_in2))=0;
 
 causal_smoothw = circularsmooth(causal_in2w,10);
 causal_smooth =  circularsmooth(causal_in2 ,10);
-% need to do this still.
 %save data toa  new format for Andy
 % for k = 1:SCI2(3) 
 %     CScell = cell(SCI2(4), SCI2(5));
@@ -110,7 +120,7 @@ causal_smooth =  circularsmooth(causal_in2 ,10);
 %Plot individual imagesc and as subplots
 for k = 1:size(causal_smoothw,3)%for each window length (trigger and build-up)
     mat_pre = squeeze(causal_smoothw(:,:,k,:,:));
-    surfaces_3x4(mat_pre, k,Monk, CodeDir)
+    surfaces_3x4(mat_pre, k,savePath)
 end
 %% Weights and firing rates of inputs triggering an output spike.
 ClearCloseClc()
@@ -252,8 +262,8 @@ pbaspect([1,1,.25])
 % clim(max(abs(mat_),[],'all')*[-1, 1])
 xlabel('input prefered direction (degrees)')
 ylabel('target direction (degrees)')
-saveas(f1,[CodeDir '\Figures\' 'Monk' Monk '_' sprintf('ContributionMinusChance_%02ims', i) '.emf'],'meta')
-saveas(f1,[CodeDir '\Figures\' 'Monk' Monk '_' sprintf('ContributionMinusChance_%02ims', i) '.png'])
+saveas(f1,[CodeDir '\Figures\' 'Monk_' Monk '\SurfacePlots\emf\' sprintf('ContributionMinusChance_%02ims', i) '.emf'],'meta')
+saveas(f1,[CodeDir '\Figures\' 'Monk_' Monk '\SurfacePlots\png\' sprintf('ContributionMinusChance_%02ims', i) '.png'])
 close all
 end
 

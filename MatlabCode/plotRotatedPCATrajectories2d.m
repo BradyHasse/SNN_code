@@ -1,6 +1,6 @@
-function plotRotatedPCATrajectories2d(rs,colors, savePath)
-    mkdir([savePath 'png\']);
-    mkdir([savePath 'emf\']);
+function plotRotatedPCATrajectories2d(rs,colors, savePath,AorP)
+    mkdir([savePath '\png\']);
+    mkdir([savePath '\emf\']);
     num_comp = 6;
     ylimset = max(abs(rs),[],'all');
 
@@ -36,8 +36,8 @@ function plotRotatedPCATrajectories2d(rs,colors, savePath)
         view(views(i,:))
         set(f1,'Color','None')
 
-        saveas(f1, sprintf('%s\\emf\\rotPCA_Paired_2D_%01i.emf', savePath, i), 'meta');
-        saveas(f1, sprintf('%s\\png\\rotPCA_Paired_2D_%01i.png', savePath, i));
+        saveas(f1, sprintf('%s\\emf\\%s_rotPCA_Paired_2D_%01i.emf', savePath,AorP, i), 'meta');
+        saveas(f1, sprintf('%s\\png\\%s_rotPCA_Paired_2D_%01i.png', savePath,AorP, i));
 
         close all
     end

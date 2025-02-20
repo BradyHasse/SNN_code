@@ -1,6 +1,6 @@
-function plotRotatedPCATrajectories(rs, mean_ev, xax_labelsms,colors, savePath)
-    mkdir([savePath 'png\']);
-    mkdir([savePath 'emf\']);
+function plotRotatedPCATrajectories(rs, mean_ev, xax_labelsms,colors, savePath,AorP)
+    mkdir([savePath '\png\']);
+    mkdir([savePath '\emf\']);
     num_comp = 6;
     ylimset = max(abs(rs), [], 'all');
     mevms = (mean_ev([7,12,10]) * 1000) - 200;
@@ -18,8 +18,8 @@ function plotRotatedPCATrajectories(rs, mean_ev, xax_labelsms,colors, savePath)
         ylabel(ylab);
         xlabel(xlab);
         % Save figures
-        saveas(f1, sprintf('%s\\emf\\rotPCA_Actual_comp_%01i.emf', savePath, i), 'meta');
-        saveas(f1, sprintf('%s\\png\\rotPCA_Actual_comp_%01i.png', savePath, i));
+        saveas(f1, sprintf('%s\\emf\\%s_rotPCA_comp_%01i.emf', savePath,AorP,i), 'meta');
+        saveas(f1, sprintf('%s\\png\\%s_rotPCA_comp_%01i.png', savePath,AorP,i));
         close all;
     end
 end

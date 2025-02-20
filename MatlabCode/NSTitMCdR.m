@@ -3,7 +3,7 @@ CodeDir = 'C:\Users\BAH150\.spyder-py3\Brian2\Brady';  % Set up the directory he
 addpath([CodeDir '\MatlabCode'])  %Where do all of the functions live?
 ClearCloseClc()
 % Set up environment variables and constants
-Monk = 'N';  % Set the monk up here. Options: 'C' or 'N'
+Monk = 'C';  % Set the monk up here. Options: 'C' or 'N'
 [colors, MI, Mkind, TargetDir_N, PD_N, PD_N2] = setupEnvironment(Monk, CodeDir);
 
 %% load in data for PCA from actual (Figure 1)
@@ -27,17 +27,25 @@ plotFiringRates(xax_labels*1000, histo_allP, ylimset, (mean_ev([7,12,10])*1000)-
 plotRatesPatches(xax_labels*1000, histo_allP , ylimset, (mean_ev([7,12,10])*1000)-200, 'Firing Rate (spk/sec)', 'Time (msec)', savePath, 'A',colors, STA);
 
 %% Perform Rotated PCA on the data
-rs = performRotatedPCA(histo_all);
-
-% Save the rotated PCA results
-save([CodeDir '\Data\Monk' Monk '_rotPCA_Actual_.mat'], 'rs');
-
-% Plot the rotated PCA components
-savePath = sprintf('%s\\Figures\\Monk_%s\\rPCA', CodeDir, Monk);
-plotRotatedPCATrajectories(rs, mean_ev, xax_labels*1000,colors, savePath);
-
-% Plot three pairs of PCA scores 2D plots
-plotRotatedPCATrajectories2d(rs,colors, savePath);
+for i = 1:2% for actual and predicted
+    if i == 1
+        rs = performRotatedPCA(histo_all);
+        AorP = "Actual";
+    else
+        rs = performRotatedPCA(histo_allP);
+        AorP = "Predicted";
+    end
+    
+    % Save the rotated PCA results
+    save(sprintf('%s\\Data\\Monk%s_rPCA_%s.mat', CodeDir, Monk,AorP), 'rs');
+    
+    % Plot the rotated PCA components
+    savePath = sprintf('%s\\Figures\\Monk_%s\\rPCA', CodeDir, Monk);
+    plotRotatedPCATrajectories(rs, mean_ev, xax_labels*1000,colors, savePath,AorP);
+    
+    % Plot three pairs of PCA scores 2D plots
+    plotRotatedPCATrajectories2d(rs,colors, savePath,AorP);
+end
 %% load in data for input FR, weights, and actual vs predicted FR (Figure 3)
 ClearCloseClc()
 input_FR = importdata([CodeDir,'\Data\Monk',Monk,'_input_FR_',MI{2,Mkind},'.mat']);
@@ -253,8 +261,8 @@ pbaspect([1,1,.25])
 % clim(max(abs(mat_),[],'all')*[-1, 1])
 xlabel('input prefered direction (degrees)')
 ylabel('target direction (degrees)')
-saveas(f1,[CodeDir '\Figures\' 'Monk' Monk '_' sprintf('ContributionMinusChance_%02ims', i) '.emf'],'meta')
-saveas(f1,[CodeDir '\Figures\' 'Monk' Monk '_' sprintf('ContributionMinusChance_%02ims', i) '.png'])
+saveas(f1,[CodeDir '\Figures\' 'Monk_' Monk '\SurfacePlots\emf\' sprintf('ContributionMinusChance_%02ims', i) '.emf'],'meta')
+saveas(f1,[CodeDir '\Figures\' 'Monk_' Monk '\SurfacePlots\png\' sprintf('ContributionMinusChance_%02ims', i) '.png'])
 close all
 end
 
