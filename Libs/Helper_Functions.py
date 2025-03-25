@@ -593,11 +593,11 @@ def CreateBestValues(PrevPar,Av_FR):
     BestValues = np.hstack([BestValues, np.expand_dims(RMSEneur_min,1), np.expand_dims(RScoreneur_min,1), np.expand_dims(fitness_min, 1)])
     return BestValues
 
-#%% Create_BVhist2
-def Create_BVhist2(BVhist):
+#%% Create_BV_hist2
+def Create_BV_hist2(BV_hist):
 
     rng = np.random.default_rng()
-    BVhistnp = np.array(BVhist)
+    BVhistnp = np.array(BV_hist)
     BVunique = []
     numBVs = []
     me_std = np.zeros([BVhistnp.shape[1], 2,5])

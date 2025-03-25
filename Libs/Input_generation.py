@@ -2,13 +2,10 @@
 """
 Created on Fri Aug  4 14:17:26 2023
 Routines for generating SNN input consisting of three gaussian rate profiles and one based on speed
-Typical usage:
-[inp_indices,inp_spikes]=make_individual_input_spikes(16,rep_cnt,events,duration,speed_all,speed_times,gauss_center,gauss_sigma,event_landmarks)
 
-@author: Andrew
+@author: Andrew, Brady
 """
 #%%   Initialize the enviornment-  Make sure you are in the correct directory
-import matplotlib.pyplot as plt
 from brian2 import SpikeGeneratorGroup,mA,second, mV, volt, Synapses, collect, devices
 from brian2 import NeuronGroup, run, ms, defaultclock, SpikeMonitor, StateMonitor,start_scope,TimedArray,PopulationRateMonitor,PoissonGroup,Hz,second, Network
 import numpy as np
@@ -76,9 +73,6 @@ def make_individual_input_spikes_par(args):
     center2 = ev[11] -int2 #pk_speed_time
     center3 = ev[9]-int3  #end_movement
 
-    # width1 = gauss_sigma[0]*300   #changing to default width 
-    # width2 = gauss_sigma[1]*500#changing to default width
-    # width3 = gauss_sigma[2]*300#changing to default width
     width1 = gauss_sigma[0]*1000   
     width2 = gauss_sigma[1]*1000
     width3 = gauss_sigma[2]*1000
@@ -99,7 +93,6 @@ def make_individual_input_spikes_par(args):
     out_inp_indices[3] = np.copy(out_inp_indices_)
     out_inp_spikes[3] = np.copy(out_inp_spikes_/second)
     
-    # print('Finished target ',target,' rep ' ,rep ) 
 
     return(out_inp_indices, out_inp_spikes, target, rep)
 
@@ -107,12 +100,11 @@ def make_individual_input_spikes_par(args):
 def make_input_spikes(duration,direction,num_neurons,center,width,speed,speed_points,speed_lag,seed,maxspeed):
 #Uses Hongwei's equations for adding noise
 # Make a set of num_neurons, each with a different prefered direction, with firing rates dictated by gaussian input 
-    #print('direction',direction,'gaincenter',center,'width',width, 'speed_center',speed_center)
     start_scope()
     devices.device.seed(seed=seed)
     
-    vr = -70*mV#-70*mV 	# resting potential level
-    vt = -55*mV#0.35*volt# threshold for firing of action potential
+    vr = -70*mV # -70*mV 	# resting potential level
+    vt = -55*mV # 0.35*volt# threshold for firing of action potential
     baseFR = 35
     n_sigma = 0.15*(vt-vr)	# 0.05; sigma of noise added to membrane potential
     
@@ -150,49 +142,6 @@ def make_input_spikes(duration,direction,num_neurons,center,width,speed,speed_po
 
     all_indices=SM.i;
     all_occ= SM.t
-    
-    
-    # plt.figure()
-    # ax= plt.gca()
-    # ax.set_prop_cycle(plt.cycler('color', colors90)) 
-    # plt.plot(trans_inputs)
-    # plt.show()
-    
-    # reps = [0,1]  
-    # events = events[:,reps[0]:reps[1],:]
-    # numsegs = 4
-    # events = events[0,reps[0]:reps[1],:]
-    # events = np.tile(events, [90,1])
-    # events = np.expand_dims(events,1)
-    
-    # inds = np.array(all_indices)#this block is used to check what inputs look like.
-    # occs = np.array(all_occ)
-    
-    # plt.figure()
-    # ax= plt.gca()
-    # ax.set_prop_cycle(plt.cycler('color', colors90)) 
-    # for ind in range(num_neurons):
-    #     ttimes = occs[inds==ind]
-    #     num_spikes = len(ttimes) 
-    #     y = np.ones(num_spikes)*(ind+1)
-    #     plt.plot(ttimes,y,'.')
-    #     plt.title(len(occs))
-    # plt.show()
-        
-    # occs2 = []   
-    # for ind in range(num_neurons): 
-    #     occs2.append([occs[inds==ind]])
-    # occs3 = np.array(occs2,dtype=object)
-    # in_array = occs3  
-    # [histo,xax_labels,mean_ev] =  make_norm_histos(occs3,events,reps,4)
-    # plt.figure()
-    # ax= plt.gca()
-    # ax.set_prop_cycle(plt.cycler('color', colors90)) 
-    # ax.spines['right'].set_visible(False)
-    # ax.spines['top'].set_visible(False)
-    # for i in range(90):
-    #     plt.plot(histo[:,i],lw = 2)
-    
     return(all_indices,all_occ) 
 #%% make_input_spikes_speed
 def make_input_spikes_speed(duration,num_neurons,speed,speed_points,speed_lag,seed,maxspeed):
