@@ -486,24 +486,33 @@ def make_norm_histos_nbins(in_array, events, reps, numsegs, nbins=[], o_binwidth
     return mr, timax, mean_ev, nbins
 
 #%% make_histos
-def make_histos(in_array,ev,mode):    
-#simple one-trial histogram aligned to movement onset 
-# events need to be specified events[target][rep]
+def make_histos(in_array, ev, mode):    
+    """
+    Generates a single-trial histogram of spike rates aligned to movement onset.
+
+    Parameters:
+    - in_array: Spike times for a single trial.
+    - ev: List of event timings [target_show, ..., reward], i.e. events[target][rep].
+      Events must be specified as ev[target][rep].
+    - mode: 'predicted' for predicted spike times, otherwise 'actual' spike times.
+
+    Returns:
+    - sm_rates: Smoothed spike rate histogram.
+    """
 
     if mode == 'predicted':
-        rr= in_array
-        stimes = np.array(rr,dtype=float)
-    else:                       #Actual
-        rr = (np.squeeze(in_array))
-        stimes= rr
-    
+        stimes = np.array(in_array, dtype=float)
+    else:  # Actual data
+        stimes = np.squeeze(in_array)
+
     target_show = ev[2]
     reward = ev[5]      
-    binwidth1 = float(.02)
-    rates = bin_frac2(stimes,target_show,reward,binwidth1)
-    # sm_rates = smooth(rates,9)
-    sm_rates = gaussian_filter(rates,1, mode = 'nearest')
-    return(sm_rates)
+    binwidth = 0.02  # Bin width in seconds
+
+    rates = bin_frac2(stimes, target_show, reward, binwidth)
+    sm_rates = gaussian_filter(rates, 1, mode='nearest')  # Apply Gaussian smoothing
+
+    return sm_rates
 #%% w_steps_gen
 def w_steps_gen(num_units, bounds, popsize):
     """
@@ -691,331 +700,599 @@ Returns:
     correlation = np.nan_to_num(correlation, copy=False)
     return rmse_neur, correlation, correlation2
 
-#%% differential_evolution
-def CreateBestValues(prev_par,Av_FR):
+#%% CreateBestValues
+def CreateBestValues(prev_par, Av_FR):
+    """
+    Computes the best parameter values based on fitness metrics.
 
-    rmse_neur = np.zeros([len(prev_par[0][0]), len(prev_par)])
-    rmse_neur2 = np.zeros(rmse_neur.shape)
-    correlation2 = np.zeros(rmse_neur.shape)
-    for i in range(len(prev_par)):  
-        rmse_neur[:,i] = (prev_par[i][0]/Av_FR)*2-1
-        rmse_neur2[:,i] = prev_par[i][0]
-        correlation2[:,i] = prev_par[i][3]
-    fitness = np.copy(rmse_neur-correlation2)   
+    Parameters:
+    - prev_par: List of previous parameter sets. Each entry contains:
+        [0] Normalized RMSE values
+        [1] Parameter matrix
+        [3] Correlation values
+    - Av_FR: Average firing rate for normalization.
 
+    Returns:
+    - BestValues: A matrix containing the best parameter values along with 
+      corresponding RMSE, correlation, and fitness scores.
+    """
+
+    num_neurons = len(prev_par[0][0])
+    num_trials = len(prev_par)
+
+    # Initialize matrices
+    rmse_neur = np.zeros((num_neurons, num_trials))
+    rmse_neur2 = np.zeros_like(rmse_neur)
+    correlation2 = np.zeros_like(rmse_neur)
+
+    # Compute RMSE, raw RMSE, and correlation values
+    for i in range(num_trials):  
+        rmse_neur[:, i] = (prev_par[i][0] / Av_FR) * 2 - 1
+        rmse_neur2[:, i] = prev_par[i][0]
+        correlation2[:, i] = prev_par[i][3]
+
+    # Compute fitness metric
+    fitness = rmse_neur - correlation2  
+
+    # Identify best values based on fitness
     fitness_min = np.min(fitness, axis=1)
     fitness_argmin = np.argmin(fitness, axis=1)
-    rmse_neur_min = rmse_neur2[np.arange(rmse_neur2.shape[0]), fitness_argmin]
-    RScoreneur_min = correlation2[np.arange(correlation2.shape[0]), fitness_argmin]
+    rmse_neur_min = rmse_neur2[np.arange(num_neurons), fitness_argmin]
+    RScoreneur_min = correlation2[np.arange(num_neurons), fitness_argmin]
 
+    # Extract best parameter values
     BestValues = np.zeros(prev_par[0][1].shape)
     for i in range(BestValues.shape[0]):
-        BestValues[i,:] = prev_par[fitness_argmin[i]][1][i,:]
-    BestValues = np.hstack([BestValues, np.expand_dims(rmse_neur_min,1), np.expand_dims(RScoreneur_min,1), np.expand_dims(fitness_min, 1)])
+        BestValues[i, :] = prev_par[fitness_argmin[i]][1][i, :]
+
+    # Append additional metrics to BestValues
+    BestValues = np.hstack([
+        BestValues, 
+        rmse_neur_min[:, np.newaxis], 
+        RScoreneur_min[:, np.newaxis], 
+        fitness_min[:, np.newaxis]
+    ])
+
     return BestValues
 
 #%% Create_BV_hist2
 def Create_BV_hist2(BV_hist):
+    """
+    Processes and augments a history of best values (BV_hist) by computing unique values, 
+    their statistics, and generating additional samples.
+
+    Parameters:
+    - BV_hist: List or array of best value histories with dimensions (samples, units, features).
+
+    Returns:
+    - BVhist2: Transformed and expanded array with shape (units, features, samples).
+    """
 
     rng = np.random.default_rng()
     BVhistnp = np.array(BV_hist)
+
+    num_units = BVhistnp.shape[1]
     BVunique = []
     numBVs = []
-    me_std = np.zeros([BVhistnp.shape[1], 2,5])
-    for unit in range(BVhistnp.shape[1]):
-        BVunit = BVhistnp[:,unit,:]
-        uniqueW = np.unique(BVunit, axis=0)
-        uniqueW = uniqueW[uniqueW[:, -1].argsort()]
-        me_std[unit,0,:] = np.mean(uniqueW[:int(uniqueW.shape[0]/2), :5],axis=0)
-        me_std[unit,1,:] = np.std(uniqueW[:int(uniqueW.shape[0]/2), :5],axis=0)
-        BVunique.append(uniqueW[uniqueW[:, -1].argsort()])
-        numBVs.append(uniqueW.shape[0])
-    numBVs = np.array(numBVs)
-    for unit in range(BVhistnp.shape[1]):
-        uniqueW = BVunique[unit]
-        randnums = rng.standard_normal([np.max(numBVs)-numBVs[unit],5])
-        new_w = np.multiply(randnums,np.squeeze(me_std[unit,0,:]))+np.squeeze(me_std[unit,1,:])
-        new_w = np.append(new_w, np.zeros([new_w.shape[0], 3]),axis = 1)
-        BVunique[unit] = np.append(BVunique[unit], new_w,axis = 0)
-    BVhist2 = np.transpose(np.array(BVunique),[0,2,1])
     
+    # Array to store mean and standard deviation (for 5 features per unit)
+    me_std = np.zeros((num_units, 2, 5))
+
+    # Process each unit separately
+    for unit in range(num_units):
+        BVunit = BVhistnp[:, unit, :]
+        
+        # Identify unique weight values and sort by the last column
+        uniqueW = np.unique(BVunit, axis=0)
+        uniqueW = uniqueW[np.argsort(uniqueW[:, -1])]
+
+        # Compute mean and standard deviation for the first half of uniqueW
+        half_size = int(uniqueW.shape[0] / 2)
+        me_std[unit, 0, :] = np.mean(uniqueW[:half_size, :5], axis=0)
+        me_std[unit, 1, :] = np.std(uniqueW[:half_size, :5], axis=0)
+
+        # Store sorted unique weights
+        BVunique.append(uniqueW)
+        numBVs.append(uniqueW.shape[0])
+
+    numBVs = np.array(numBVs)
+
+    # Generate additional samples for each unit
+    max_numBVs = np.max(numBVs)
+    for unit in range(num_units):
+        uniqueW = BVunique[unit]
+
+        # Generate random normal samples
+        num_new_samples = max_numBVs - numBVs[unit]
+        randnums = rng.standard_normal((num_new_samples, 5))
+
+        # Scale and shift random values based on mean and standard deviation
+        new_w = randnums * np.squeeze(me_std[unit, 0, :]) + np.squeeze(me_std[unit, 1, :])
+        
+        # Append three additional zero columns
+        new_w = np.hstack([new_w, np.zeros((new_w.shape[0], 3))])
+
+        # Append generated samples to the unique values
+        BVunique[unit] = np.vstack([uniqueW, new_w])
+
+    # Convert list to numpy array and reorder dimensions
+    BVhist2 = np.transpose(np.array(BVunique), (0, 2, 1))
+
     return BVhist2
 #%% spike_cause_count_v4
-def spike_cause_count_v4(target,reps,events,pred_spikes,inp_spikes,inp_indices,epoch,gauss_center, winsiz):
-     #Find the input spikes in an interval before each ouput spike within a specified epoch
-     #epoch is based on 1 indexing - valid epochs are 1, 2, 3
-     
-     reps_s = np.array([len(pred_spikes[0]), len(inp_spikes[0][0]), len(inp_indices[0][0])])
-     
-     if ~np.all(reps_s == events.shape[1]):
-         raise Exception("#reps mismatch between ""in_array"" and ""events")
-     
-     if reps[0] > reps[1]:
-         reps = np.flip(reps)
-     if reps[1] > events.shape[1]:
-         raise Exception("reps requested out of range for in_array")
-     
-     numreps = int(np.diff(reps))
-     pred_spikes_1 = pred_spikes[target][reps[0]:reps[1]]
-     width = 60
-   
-     eventInds = np.array([6, 11, 9])#start_movement (6) pk_speed (11) end_movement (9)
 
-     mev = np.mean(events[np.ix_([target],np.arange(events.shape[1]),eventInds)],1)
-     ints = (mev-gauss_center)*1000
-     
-     t_events = events[np.ix_([target],np.arange(reps[0],reps[1]),eventInds)]
-     ev = np.round(t_events*1000)
-     ev = ev.astype(int)
-     
-     centers = np.squeeze(ev - np.tile(ints, [numreps, 1]))
-     
-     accum = np.zeros([90,len(inp_spikes)])
-     
-     out_sample= []
-     for rep in range(numreps):
-         pred_spikes_2 = np.round((np.array(pred_spikes_1[rep])*1000)*10)/10 #0.1ms resolution in simulator
-         pred_spikes_2 = pred_spikes_2[(pred_spikes_2 > centers[rep, epoch-1]-width) & (pred_spikes_2 <= centers[rep, epoch-1]+width)]
-         out_sample.append(pred_spikes_2)  
-         for imp_g in range(len(inp_spikes)):#for all input groups
-             inp_spikes_1 = np.round((np.array(inp_spikes[imp_g][target][rep+reps[0]])*1000)*10)/10 #0.1ms resolution in simulator
-             inp_indices_1 = np.array(inp_indices[imp_g][target][rep+reps[0]])
-             for p_spike in range(pred_spikes_2.size):
-                 inp_spikes_2 = (inp_spikes_1 < pred_spikes_2[p_spike]) & (inp_spikes_1 >= pred_spikes_2[p_spike]-winsiz)
-                 [imp_ind, imp_c] = np.unique(inp_indices_1[inp_spikes_2], return_counts=True)
-                 accum[imp_ind,imp_g] = accum[imp_ind,imp_g] + imp_c
-                 
-     percents = accum/np.sum(accum)
-             
-     return(accum, percents, out_sample)
+def spike_cause_count_v4(target, reps, events, pred_spikes, inp_spikes, inp_indices, epoch, gauss_center, winsiz):
+    """
+    Identifies input spikes occurring within a specified window before each output spike within a given epoch.
+
+    Parameters:
+        target (int): The target neuron index.
+        reps (list): Two-element list specifying the start and end repetitions.
+        events (np.ndarray): Array of event times with shape (targets, trials, events).
+        pred_spikes (list): List of predicted spike times for each target and repetition.
+        inp_spikes (list): List of input spike times for each group, target, and repetition.
+        inp_indices (list): List of input spike indices for each group, target, and repetition.
+        epoch (int): Epoch index (1-based). Valid values are 1, 2, or 3.
+        gauss_center (float): Center of the Gaussian smoothing window.
+        winsiz (float): Time window size for counting input spikes before output spikes.
+
+    Returns:
+        tuple: (accum, percents, out_sample)
+            - accum (np.ndarray): Accumulated spike counts per input group.
+            - percents (np.ndarray): Normalized percentages of spike occurrences.
+            - out_sample (list): List of predicted spike times in the specified window.
+    """
+
+    # Validate repetition indices
+    if reps[0] > reps[1]:
+        reps = np.flip(reps)
+    if reps[1] > events.shape[1]:
+        raise ValueError("Repetitions requested are out of range for 'events'.")
+
+    num_reps = reps[1] - reps[0]
+    pred_spikes_selected = pred_spikes[target][reps[0]:reps[1]]
+
+    # Define movement event indices: [start_movement, peak_speed, end_movement]
+    event_indices = np.array([6, 11, 9])
+
+    # Compute movement event means and intervals
+    mean_events = np.mean(events[np.ix_([target], np.arange(events.shape[1]), event_indices)], axis=1)
+    event_intervals = (mean_events - gauss_center) * 1000  # Convert to milliseconds
+
+    # Extract and process relevant event times
+    target_events = events[np.ix_([target], np.arange(reps[0], reps[1]), event_indices)]
+    event_times = np.round(target_events * 1000).astype(int)
+
+    # Compute event-centered timestamps
+    centers = np.squeeze(event_times - np.tile(event_intervals, (num_reps, 1)))
+
+    # Initialize accumulation matrix
+    num_input_groups = len(inp_spikes)
+    accum = np.zeros((90, num_input_groups))
+    out_sample = []
+
+    # Loop through repetitions
+    for rep in range(num_reps):
+        # Extract and round predicted spike times
+        pred_spikes_rounded = np.round(np.array(pred_spikes_selected[rep]) * 1000 * 10) / 10  # 0.1 ms resolution
+        valid_pred_spikes = pred_spikes_rounded[
+            (pred_spikes_rounded > centers[rep, epoch - 1] - 60) & 
+            (pred_spikes_rounded <= centers[rep, epoch - 1] + 60)
+        ]
+        out_sample.append(valid_pred_spikes)
+
+        # Iterate over input groups
+        for group_idx in range(num_input_groups):
+            inp_spikes_rounded = np.round(np.array(inp_spikes[group_idx][target][rep + reps[0]]) * 1000 * 10) / 10
+            inp_indices_selected = np.array(inp_indices[group_idx][target][rep + reps[0]])
+
+            # Count spikes within the window before each predicted spike
+            for spike in valid_pred_spikes:
+                in_window = (inp_spikes_rounded < spike) & (inp_spikes_rounded >= spike - winsiz)
+                unique_indices, counts = np.unique(inp_indices_selected[in_window], return_counts=True)
+                accum[unique_indices, group_idx] += counts
+
+    # Normalize accumulation to get percentages
+    percents = accum / np.sum(accum)
+
+    return accum, percents, out_sample
  
 #%% spike_cause_FR_W
-def spike_cause_FR_W(target,reps,events,pred_spikes,inp_spikes,inp_indices,epoch,gauss_center, winsiz,bintimes,histin):
-     #Find the input spikes in an interval before each ouput spike within a specified epoch
-     #epoch is based on 1 indexing - valid epochs are 1, 2, 3
-     bintimes2 = np.copy(bintimes[target,reps[0]:reps[1]])
-     histin2 = np.copy(histin[target,reps[0]:reps[1],:,:])
-     reps_s = np.array([len(pred_spikes[0]), len(inp_spikes[0][0]), len(inp_indices[0][0])])
-     
-     if ~np.all(reps_s == events.shape[1]):
-         raise Exception("#reps mismatch between ""in_array"" and ""events")
-     
-     if reps[0] > reps[1]:
-         reps = np.flip(reps)
-     if reps[1] > events.shape[1]:
-         raise Exception("reps requested out of range for in_array")
-     
-     numreps = int(np.diff(reps))
-     pred_spikes_1 = pred_spikes[target][reps[0]:reps[1]]
-     width = 60
-   
-     eventInds = np.array([6, 11, 9])#start_movement (6) pk_speed (11) end_movement (9)
+def spike_cause_FR_W(target, reps, events, pred_spikes, inp_spikes, inp_indices, 
+                     epoch, gauss_center, winsiz, bintimes, histin):
+    """
+    Identifies input spikes occurring before (or after) each output spike within a given epoch 
+    and calculates firing rates (FR) based on input spike times.
 
-     mev = np.mean(events[np.ix_([target],np.arange(events.shape[1]),eventInds)],1)
-     ints = (mev-gauss_center)*1000
-     
-     t_events = events[np.ix_([target],np.arange(reps[0],reps[1]),eventInds)]
-     ev = np.round(t_events*1000)
-     ev = ev.astype(int)
-     
-     centers = np.squeeze(ev - np.tile(ints, [numreps, 1]))
-     
-     accum = np.zeros([90,len(inp_spikes)])
-     FRs = [ [] for _ in range(len(inp_spikes)) ]
-     out_sample= []
-     for rep in range(numreps):
-         pred_spikes_2 = np.round((np.array(pred_spikes_1[rep])*1000)*10)/10 #0.1ms resolution in simulator
-         pred_spikes_2 = pred_spikes_2[(pred_spikes_2 > centers[rep, epoch-1]-width) & (pred_spikes_2 <= centers[rep, epoch-1]+width)]
-         out_sample.append(pred_spikes_2)  
-         for imp_g in range(len(inp_spikes)):#for all input groups
-             inp_spikes_1 = np.round((np.array(inp_spikes[imp_g][target][rep+reps[0]])*1000)*10)/10 #0.1ms resolution in simulator
-             inp_indices_1 = np.array(inp_indices[imp_g][target][rep+reps[0]])
-             for p_spike in range(pred_spikes_2.size):
-                 if winsiz >= 0:
-                     inp_spikes_2 = (inp_spikes_1 < pred_spikes_2[p_spike]) & (inp_spikes_1 >= pred_spikes_2[p_spike]-winsiz)
-                 elif winsiz < 0:#looking for input spikes AFTER output spikes.
-                     inp_spikes_2 = (inp_spikes_1 > pred_spikes_2[p_spike]) & (inp_spikes_1 <= pred_spikes_2[p_spike]-winsiz)
-                 [imp_ind, imp_c] = np.unique(inp_indices_1[inp_spikes_2], return_counts=True)
-                 accum[imp_ind,imp_g] = accum[imp_ind,imp_g] + imp_c
-                 inp_spikes_3 = inp_spikes_1[inp_spikes_2]
-                 inp_indices_3 = inp_indices_1[inp_spikes_2]
-                 for inp_s in range(inp_spikes_3.size):
-                     FR = np.interp(inp_spikes_3[inp_s],bintimes2[rep]*1000,histin2[rep,imp_g, inp_indices_3[inp_s]])
-                     FRs[imp_g].append(FR)
-                 
-     percents = accum/np.sum(accum)
-             
-     return(accum, percents, out_sample,FRs)
+    Parameters:
+        target (int): The target neuron index.
+        reps (list): Two-element list specifying the start and end repetitions.
+        events (np.ndarray): Array of event times with shape (targets, trials, events).
+        pred_spikes (list): List of predicted spike times for each target and repetition.
+        inp_spikes (list): List of input spike times for each group, target, and repetition.
+        inp_indices (list): List of input spike indices for each group, target, and repetition.
+        epoch (int): Epoch index (1-based). Valid values are 1, 2, or 3.
+        gauss_center (float): Center of the Gaussian smoothing window.
+        winsiz (float): Time window size for counting input spikes before (or after) output spikes.
+        bintimes (np.ndarray): Time bins for spike rate calculation.
+        histin (np.ndarray): Histogram data for firing rates.
+
+    Returns:
+        tuple: (accum, percents, out_sample, FRs)
+            - accum (np.ndarray): Accumulated spike counts per input group.
+            - percents (np.ndarray): Normalized percentages of spike occurrences.
+            - out_sample (list): List of predicted spike times in the specified window.
+            - FRs (list): List of interpolated firing rates for input spikes.
+    """
+
+    # Extract relevant bin times and histogram data
+    bintimes2 = np.copy(bintimes[target, reps[0]:reps[1]])
+    histin2 = np.copy(histin[target, reps[0]:reps[1], :, :])
+
+    # Validate repetition indices
+    if reps[0] > reps[1]:
+        reps = np.flip(reps)
+    if reps[1] > events.shape[1]:
+        raise ValueError("Repetitions requested are out of range for 'events'.")
+
+    num_reps = reps[1] - reps[0]
+    pred_spikes_selected = pred_spikes[target][reps[0]:reps[1]]
+    width = 60  # Window width in milliseconds
+
+    # Define movement event indices: [start_movement, peak_speed, end_movement]
+    event_indices = np.array([6, 11, 9])
+
+    # Compute movement event means and intervals
+    mean_events = np.mean(events[np.ix_([target], np.arange(events.shape[1]), event_indices)], axis=1)
+    event_intervals = (mean_events - gauss_center) * 1000  # Convert to milliseconds
+
+    # Extract and process relevant event times
+    target_events = events[np.ix_([target], np.arange(reps[0], reps[1]), event_indices)]
+    event_times = np.round(target_events * 1000).astype(int)
+
+    # Compute event-centered timestamps
+    centers = np.squeeze(event_times - np.tile(event_intervals, (num_reps, 1)))
+
+    # Initialize accumulation and firing rate storage
+    num_input_groups = len(inp_spikes)
+    accum = np.zeros((90, num_input_groups))
+    FRs = [[] for _ in range(num_input_groups)]
+    out_sample = []
+
+    # Loop through repetitions
+    for rep in range(num_reps):
+        # Extract and round predicted spike times
+        pred_spikes_rounded = np.round(np.array(pred_spikes_selected[rep]) * 1000 * 10) / 10  # 0.1 ms resolution
+        valid_pred_spikes = pred_spikes_rounded[
+            (pred_spikes_rounded > centers[rep, epoch - 1] - width) & 
+            (pred_spikes_rounded <= centers[rep, epoch - 1] + width)
+        ]
+        out_sample.append(valid_pred_spikes)
+
+        # Iterate over input groups
+        for group_idx in range(num_input_groups):
+            inp_spikes_rounded = np.round(np.array(inp_spikes[group_idx][target][rep + reps[0]]) * 1000 * 10) / 10
+            inp_indices_selected = np.array(inp_indices[group_idx][target][rep + reps[0]])
+
+            # Count spikes within the window before (or after) each predicted spike
+            for spike in valid_pred_spikes:
+                if winsiz >= 0:
+                    in_window = (inp_spikes_rounded < spike) & (inp_spikes_rounded >= spike - winsiz)
+                else:  # Looking for input spikes AFTER output spikes
+                    in_window = (inp_spikes_rounded > spike) & (inp_spikes_rounded <= spike - winsiz)
+
+                unique_indices, counts = np.unique(inp_indices_selected[in_window], return_counts=True)
+                accum[unique_indices, group_idx] += counts
+
+                # Compute firing rates for spikes within the window
+                inp_spikes_filtered = inp_spikes_rounded[in_window]
+                inp_indices_filtered = inp_indices_selected[in_window]
+
+                for inp_s in range(inp_spikes_filtered.size):
+                    FR = np.interp(
+                        inp_spikes_filtered[inp_s], 
+                        bintimes2[rep] * 1000, 
+                        histin2[rep, group_idx, inp_indices_filtered[inp_s]]
+                    )
+                    FRs[group_idx].append(FR)
+
+    # Normalize accumulation to get percentages
+    percents = accum / np.sum(accum)
+
+    return accum, percents, out_sample, FRs
 
 #%% spike_cause_FR_W_all
-def spike_cause_FR_W_all(target,events,pred_spikes,inp_spikes,inp_indices, winsiz,bintimes,histin):
-     #Find the input spikes in an interval before each ouput spike within a specified epoch
-     #epoch is based on 1 indexing - valid epochs are 1, 2, 3
-     reps = [0, events.shape[1]]
-     bintimes2 = np.copy(bintimes[target,reps[0]:reps[1]])
-     histin2 = np.copy(histin[target,reps[0]:reps[1],:,:])
-     
-     numreps = int(np.diff(reps))
-     pred_spikes_1 = pred_spikes[target][reps[0]:reps[1]]
-     pred_spikes_2 = []
-     for rep in range(numreps):
-         pred_spikes_2.append(np.round(np.array(pred_spikes_1[rep])*1000,1))#0.1ms resolution in simulator
-     
-     FRs = []
-     infoint8 = []
-     for rep in range(numreps):
-         for imp_g in range(len(inp_spikes)):#for all input groups
-             inp_spikes_1 = np.round(np.array(inp_spikes [imp_g][target][rep+reps[0]])*1000,1)
-             inp_indices_1 =         np.array(inp_indices[imp_g][target][rep+reps[0]])
-             for p_spike in range(pred_spikes_2[rep].size):
-                 inp_spikes_2 = (inp_spikes_1 < pred_spikes_2[rep][p_spike]) & (inp_spikes_1 >= pred_spikes_2[rep][p_spike]-winsiz)
-                 [imp_ind, imp_c] = np.unique(inp_indices_1[inp_spikes_2], return_counts=True)
-                 inp_spikes_3 = inp_spikes_1[inp_spikes_2]
-                 inp_indices_3 = inp_indices_1[inp_spikes_2]
-                 for inp_s in range(inp_spikes_3.size):
-                     FR = np.interp(inp_spikes_3[inp_s],bintimes2[rep]*1000,histin2[rep,imp_g, inp_indices_3[inp_s]])
-                     FRs.append(FR)
-                     infoint8.append(np.array([imp_g, inp_indices_3[inp_s],rep, target],dtype=('int8')))
-                     
-     FRs = np.array(FRs)                
-     infoint8 = np.array(infoint8)      
-     return(infoint8, FRs)
+def spike_cause_FR_W_all(target, events, pred_spikes, inp_spikes, inp_indices, 
+                         winsiz, bintimes, histin):
+    """
+    Identifies input spikes occurring before each output spike within a specified epoch
+    and calculates firing rates (FR) based on input spike times.
 
-#%% spike_cause_base (events,inp_spikes,inp_indices,t,epochs[e],gauss_center)
-def spike_cause_base(events,inp_spikes,inp_indices,target,epoch,gauss_center,winsiz):
-     #Find the input spikes in an interval before each ouput spike within a specified epoch
-     #epoch is based on 1 indexing - valid epochs are 1, 2, 3
-     reps = [0,events.shape[1]]
+    Parameters:
+        target (int): The target neuron index.
+        events (np.ndarray): Array of event times with shape (targets, trials, events).
+        pred_spikes (list): List of predicted spike times for each target and repetition.
+        inp_spikes (list): List of input spike times for each group, target, and repetition.
+        inp_indices (list): List of input spike indices for each group, target, and repetition.
+        winsiz (float): Time window size for counting input spikes before output spikes.
+        bintimes (np.ndarray): Time bins for spike rate calculation.
+        histin (np.ndarray): Histogram data for firing rates.
 
-     numreps = int(np.diff(reps))
-     width = 60
-   
-     eventInds = np.array([6, 11, 9])#start_movement (6) pk_speed (11) end_movement (9)
+    Returns:
+        tuple: (infoint8, FRs)
+            - infoint8 (np.ndarray): Array containing input group, input index, repetition, and target.
+            - FRs (np.ndarray): Interpolated firing rates for input spikes.
+    """
 
-     mev = np.mean(events[np.ix_([target],np.arange(events.shape[1]),eventInds)],1)
-     ints = (mev-gauss_center)*1000
-     
-     t_events = events[np.ix_([target],np.arange(reps[0],reps[1]),eventInds)]
-     ev = np.round(t_events*1000)
-     ev = ev.astype(int)
-     
-     centers = np.squeeze(ev - np.tile(ints, [numreps, 1]))
-     
-     accum = np.zeros([90,len(inp_spikes)])
-     for rep in range(numreps):
-         cr = centers[rep, epoch-1]
-         xp=np.array([0,cr-width-winsiz,cr-width,cr+width-winsiz,cr+width,cr+width+1])
-         fp = np.array([0,0,1,1,0,0])
-         for imp_g in range(len(inp_spikes)):#for all input groups
-             inp_spikes_1 = np.round((np.array(inp_spikes[imp_g][target][rep+reps[0]])*1000)*10)/10 #0.1ms resolution in simulator
-             inp_indices_1 = np.array(inp_indices[imp_g][target][rep+reps[0]])
-             np.add.at(accum[:,imp_g], inp_indices_1, np.interp(inp_spikes_1,xp, fp))
-     percents = accum/np.sum(accum)
-     return(accum, percents)
+    # Define repetition range
+    reps = [0, events.shape[1]]
+    num_reps = reps[1] - reps[0]
+
+    # Extract relevant bin times and histogram data
+    bintimes2 = np.copy(bintimes[target, reps[0]:reps[1]])
+    histin2 = np.copy(histin[target, reps[0]:reps[1], :, :])
+
+    # Retrieve predicted spike times
+    pred_spikes_selected = pred_spikes[target][reps[0]:reps[1]]
+
+    # Convert predicted spike times to 0.1 ms resolution
+    pred_spikes_rounded = [
+        np.round(np.array(pred_spikes_selected[rep]) * 1000, 1) for rep in range(num_reps)
+    ]
+
+    # Initialize storage for firing rates and spike information
+    FRs = []
+    infoint8 = []
+
+    # Loop through repetitions
+    for rep in range(num_reps):
+        for group_idx in range(len(inp_spikes)):  # Iterate over all input groups
+            inp_spikes_rounded = np.round(np.array(inp_spikes[group_idx][target][rep + reps[0]]) * 1000, 1)
+            inp_indices_selected = np.array(inp_indices[group_idx][target][rep + reps[0]])
+
+            # Loop through each predicted spike
+            for p_spike in pred_spikes_rounded[rep]:
+                # Find input spikes within the specified window
+                in_window = (inp_spikes_rounded < p_spike) & (inp_spikes_rounded >= p_spike - winsiz)
+                unique_indices, counts = np.unique(inp_indices_selected[in_window], return_counts=True)
+
+                inp_spikes_filtered = inp_spikes_rounded[in_window]
+                inp_indices_filtered = inp_indices_selected[in_window]
+
+                # Compute firing rates for spikes within the window
+                for inp_s, inp_time in enumerate(inp_spikes_filtered):
+                    FR = np.interp(
+                        inp_time, 
+                        bintimes2[rep] * 1000, 
+                        histin2[rep, group_idx, inp_indices_filtered[inp_s]]
+                    )
+                    FRs.append(FR)
+                    infoint8.append(np.array([group_idx, inp_indices_filtered[inp_s], rep, target], dtype=np.int8))
+
+    # Convert lists to numpy arrays
+    FRs = np.array(FRs)
+    infoint8 = np.array(infoint8)
+
+    return infoint8, FRs
+
+#%% spike_cause_base 
+def spike_cause_base(events, inp_spikes, inp_indices, target, epoch, gauss_center, winsiz):
+    """
+    Identifies input spikes occurring within a specific time window relative to movement events.
+
+    Parameters:
+        events (np.ndarray): Event timestamps with shape (targets, trials, events).
+        inp_spikes (list): List of input spike times for each group, target, and repetition.
+        inp_indices (list): List of input spike indices for each group, target, and repetition.
+        target (int): The target neuron index.
+        epoch (int): The epoch index (1-based, valid values: 1, 2, 3).
+        gauss_center (float): The Gaussian center for event time adjustments.
+        winsiz (float): Time window size for selecting spikes.
+
+    Returns:
+        tuple: (accum, percents)
+            - accum (np.ndarray): Accumulated spike contributions per input group.
+            - percents (np.ndarray): Normalized accumulated spike contributions.
+    """
+
+    # Define repetition range
+    reps = [0, events.shape[1]]
+    num_reps = reps[1] - reps[0]
+
+    width = 60  # Time window width
+    event_indices = np.array([6, 11, 9])  # Event indices: start_movement, peak_speed, end_movement
+
+    # Compute mean event times and adjust for Gaussian center
+    mean_events = np.mean(events[np.ix_([target], np.arange(events.shape[1]), event_indices)], axis=1)
+    time_adjustments = (mean_events - gauss_center) * 1000  # Convert to milliseconds
+
+    # Extract and round event times
+    selected_events = events[np.ix_([target], np.arange(reps[0], reps[1]), event_indices)]
+    rounded_events = np.round(selected_events * 1000).astype(int)
+
+    # Compute movement event centers
+    centers = np.squeeze(rounded_events - np.tile(time_adjustments, [num_reps, 1]))
+
+    # Initialize accumulation array
+    accum = np.zeros([90, len(inp_spikes)])
+
+    # Loop through repetitions
+    for rep in range(num_reps):
+        center_time = centers[rep, epoch - 1]  # Select center for the specified epoch
+
+        # Define interpolation function points
+        xp = np.array([0, center_time - width - winsiz, center_time - width,
+                       center_time + width - winsiz, center_time + width, center_time + width + 1])
+        fp = np.array([0, 0, 1, 1, 0, 0])  # Piecewise linear function values
+
+        # Process each input group
+        for group_idx in range(len(inp_spikes)):
+            inp_spikes_rounded = np.round(np.array(inp_spikes[group_idx][target][rep + reps[0]]) * 1000, 1)
+            inp_indices_selected = np.array(inp_indices[group_idx][target][rep + reps[0]])
+
+            # Accumulate spike contributions using interpolation
+            np.add.at(accum[:, group_idx], inp_indices_selected, np.interp(inp_spikes_rounded, xp, fp))
+
+    # Normalize accumulation values to obtain percentages
+    percents = accum / np.sum(accum)
+
+    return accum, percents
 #%% spike_cause_pot
-def spike_cause_pot(events,oas,oap,gauss_center):
-    #oap is a targets x reps ndarray. inside each cell is a num_units x duration (0.1ms res) array (float 64)
-    
-    winsiz = 200#20ms
-    width = 60
-    eventInds = np.array([6, 11, 9])#start_movement (6) pk_speed (11) end_movement (9)
-    
-    t_events = events[:,:,eventInds]*10000
-    mev = np.mean(t_events,axis=(0,1))
-    ints = (mev-gauss_center*10000)
-    ints = np.transpose(np.expand_dims(ints,(1,2)), axes=[2,1,0])
-    
-    centers = np.squeeze(t_events - np.tile(ints, [t_events.shape[0], t_events.shape[1], 1]))
-    centers = np.round(centers)
-    centers = centers.astype(int)
-    
-    pot_snips = np.empty((oas.shape[0], oas.shape[1], oas.shape[2], 3), dtype =  object)
+def spike_cause_pot(events, oas, oap, gauss_center):
+    """
+    Extracts potential snippets around movement-related event times.
+
+    Parameters:
+        events (np.ndarray): Event timestamps with shape (targets, trials, events).
+        oas (np.ndarray): Spike times array with shape (num_units, targets, trials).
+        oap (np.ndarray): Array of potential values with shape (targets, trials), where each entry is 
+                          a (num_units x duration) array (float64) representing potentials at 0.1 ms resolution.
+        gauss_center (float): Gaussian center for event time adjustments.
+
+    Returns:
+        tuple: (pot_snips, mev, centers)
+            - pot_snips (np.ndarray): Extracted potential snippets for each unit, target, repetition, and epoch.
+            - mev (np.ndarray): Mean event times across targets and trials.
+            - centers (np.ndarray): Adjusted event times used for alignment.
+    """
+
+    winsiz = 200  # 20 ms window size
+    width = 60  # Window width for spike selection
+    event_indices = np.array([6, 11, 9])  # Indices for movement events: start, peak speed, end
+
+    # Convert event times to 0.1 ms resolution
+    t_events = events[:, :, event_indices] * 10000  
+
+    # Compute mean event times and adjust for Gaussian center
+    mev = np.mean(t_events, axis=(0, 1))  
+    time_adjustments = (mev - gauss_center * 10000)
+
+    # Reshape adjustments for broadcasting
+    time_adjustments = np.transpose(np.expand_dims(time_adjustments, (1, 2)), axes=[2, 1, 0])
+
+    # Compute movement event centers
+    centers = np.squeeze(t_events - np.tile(time_adjustments, [t_events.shape[0], t_events.shape[1], 1]))
+    centers = np.round(centers).astype(int)
+
+    # Initialize container for potential snippets
+    pot_snips = np.empty((oas.shape[0], oas.shape[1], oas.shape[2], 3), dtype=object)
+
+    # Iterate over all units, targets, and repetitions
     for unit in range(oas.shape[0]):
         for target in range(oas.shape[1]):
             for rep in range(oas.shape[2]):
-                uoi = ((oas[unit,target,rep]/ms)*10).astype(int)
-                potentials = oap[target,rep][unit,:]
+                # Convert spike times to 0.1 ms resolution
+                spike_times = ((oas[unit, target, rep]) * 10).astype(int)
+
+                # Retrieve corresponding potentials
+                potentials = oap[target, rep][unit, :]
+
+                # Process each epoch
                 for epoch in range(3):
-                    uoi2 = uoi[(uoi > centers[target,rep, epoch]-width) & (uoi <= centers[target,rep, epoch]+width)]
-                    pot_snips[unit, target,rep,epoch] = np.zeros([len(uoi2),winsiz])
-                    for s in range(len(uoi2)):
-                        pot_snips[unit, target,rep,epoch][s,:] = potentials[(uoi2[s]-winsiz+1):uoi2[s]+1]
-    return (pot_snips, mev, centers)
+                    # Find spikes within the defined window around the event center
+                    valid_spikes = spike_times[
+                        (spike_times > centers[target, rep, epoch] - width) & 
+                        (spike_times <= centers[target, rep, epoch] + width)
+                    ]
+
+                    # Initialize storage for extracted potentials
+                    pot_snips[unit, target, rep, epoch] = np.zeros([len(valid_spikes), winsiz])
+
+                    # Extract corresponding potential windows
+                    for s in range(len(valid_spikes)):
+                        pot_snips[unit, target, rep, epoch][s, :] = potentials[
+                            (valid_spikes[s] - winsiz + 1) : valid_spikes[s] + 1
+                        ]
+
+    return pot_snips, mev, centers
 
 #%% make_STA
-def make_STA(unit,target,reps,events,spk_pot,pred_spikes,epoch,gauss_center):
-    #Find the 'buildup' spike accross all input groups
-     width = np.zeros(3)
-     center = np.zeros(3)
-     width[0]= 42
-     width[1]= 60 #was 200, narrow was 60,wide = 150
-     width[2]= 60
- 
-     mev = np.mean(events,1)
-     mstart_movement = mev[target][6]
-     mpk_speed_time= mev[target][11]
-     mend_movement = mev[target][9]
-     int1 = (mstart_movement-gauss_center[0])*1000
-     int2 = (mpk_speed_time-gauss_center[1])*1000
-     int3 = (mend_movement-gauss_center[2])*1000
+def make_STA(unit, target, reps, events, spk_pot, pred_spikes, epoch, gauss_center):
+    """
+    Computes the Spike-Triggered Average (STA) of membrane potentials across trials.
+
+    Parameters:
+        unit (int): Index of the unit being analyzed.
+        target (int): Target movement condition.
+        reps (int or list): Number of repetitions (trials) or range [start, end].
+        events (np.ndarray or list): Event timestamps for different conditions.
+        spk_pot (list of np.ndarray): Spiking potentials, indexed by target and repetition.
+        pred_spikes (list of list): Predicted spike times for each trial.
+        epoch (int): Epoch index (1, 2, or 3) corresponding to movement phases.
+        gauss_center (list or np.ndarray): Gaussian center adjustments for movement event timing.
+
+    Returns:
+        np.ndarray: Computed Spike-Triggered Average (STA).
+    """
+
+    # Define width and center arrays for different movement epochs
+    width = np.array([42, 60, 60])  # Start movement, peak speed, end movement
+    center = np.zeros(3)
+
+    # Compute mean event times
+    mev = np.mean(events, axis=1)
+    mstart_movement = mev[target][6]
+    mpk_speed_time = mev[target][11]
+    mend_movement = mev[target][9]
+
+    # Adjust event times based on Gaussian center
+    int1 = (mstart_movement - gauss_center[0]) * 1000
+    int2 = (mpk_speed_time - gauss_center[1]) * 1000
+    int3 = (mend_movement - gauss_center[2]) * 1000
+
+    # Define window size for averaging (in 0.1 ms resolution)
+    window_size = 20  # ms
+    win_accum = np.zeros(window_size * 10)  # 0.1 ms bins
+    num_spikes = 0
+
+    # Determine repetition range
+    try:
+        if isinstance(reps, list) and len(reps) == 2:
+            r_start, r_end = reps[0], reps[1]
+            num_reps = r_end - r_start
+        else:
+            num_reps = reps if isinstance(reps, int) else reps[target]
+            r_start, r_end = 0, num_reps
+    except:
+        num_reps, r_start, r_end = reps, 0, reps
+
+    # Extract event times for each trial
+    t_events = []
+    for irep in range(r_start, r_end):
+        try:
+            t_events.append(events[target][irep])
+        except:
+            print('Problem with events')
+
+    # Process each trial
+    for repcounter, rep in enumerate(range(r_start, r_end)):
+        ev = np.array(t_events[repcounter]) * 1000  # Convert event times to ms
+        start_movement, pk_speed, end_movement = int(ev[6]), int(ev[11]), int(ev[9])
+
+        # Compute epoch centers
+        center[0] = start_movement - int1
+        center[1] = pk_speed - int2
+        center[2] = end_movement - int3
+
+        # Define epoch window
+        epoch_start = center[epoch - 1] - width[epoch - 1]
+        epoch_end = center[epoch - 1] + width[epoch - 1]
+
+        # Get predicted spikes (convert to ms)
+        pspikes = np.array(pred_spikes[target][repcounter], dtype=float) * 1000
+
+        # Process each predicted spike
+        for t_point in pspikes:
+            if epoch_start < t_point <= epoch_end:  # Check if spike falls within the epoch
+                potential = spk_pot[target][rep].flatten()
+                w_start = int(np.round((t_point - window_size) * 10)) + 1
+                w_end = int(np.round(t_point * 10)) + 1
+                win_accum += potential[w_start:w_end]
+                num_spikes += 1
+
+    print('Total spikes =', num_spikes)
     
-     window_size = 20 #msec
-     win_accum = np.zeros(window_size*10) #10th of a msec resolution
-     win_pot = np.zeros(window_size*10)
-     try:
-         length=len(reps)
-         if length== 2:
-             num_reps= reps[1]-reps[0]
-             r_start = reps[0]
-             r_end = reps[1]
-         else:
-             num_reps = reps[target]
-             print('Target = ',target, 'Num Reps=',num_reps)
-             r_start= 0
-             r_end = num_reps
-     except:
-         num_reps= reps
-         r_start= 0
-         r_end = reps
-     t_events = []
-     for irep in range(r_start,r_end):
-         try:
-             len(events[0][0])
-             t_events.append(events[target][irep])
-         except:
-             print('Problem with events')
-     repcounter = 0
-     num_spikes = 0
-     
-     for rep in range(r_start,r_end):
-            ee = t_events[repcounter] * 1000
-            ev = np.array(ee)
-            start_movement = int(ev[6])
-            pk_speed= int(ev[11])
-            end_movement = int(ev[9])                                        
-            center[0] = start_movement-int1
-            center[1] = pk_speed -int2 
-            center[2] = end_movement-int3
-           
-            epoch_start= center[(epoch-1)]-(width[(epoch-1)])
-            epoch_end= center[(epoch-1)] +(width[(epoch-1)])
-            
-            pspikes = np.array(pred_spikes[target][repcounter],dtype=float)*1000  #Note this is for using predictions from one particular unit (e.g. 57)
-          
-            num_pspk = len(pspikes)  #number of predicted spikes in the sample
-       
-            for ps in range(num_pspk):   # cycle through all the predicted spikes
-                t_point = pspikes[ps]  #look at each spike of the modeled unit 
-                if t_point > epoch_start and t_point <= epoch_end:   #find the predicted spikes in the epoch of interest
-                    potential = spk_pot[target][rep].flatten()
-                    w_start = int(np.round((t_point-window_size)*10))+1
-                    w_end = int(np.round(t_point*10))+1
-                    win_pot= potential[w_start:w_end]
-                    win_accum += win_pot
-                    num_spikes +=1
-                   
-            repcounter += 1
-     print ('Total spikes= ',num_spikes)
-     STA = win_accum/num_spikes
-     return(STA)
+    # Compute Spike-Triggered Average (STA)
+    STA = win_accum / num_spikes if num_spikes > 0 else win_accum
+    return STA
  
