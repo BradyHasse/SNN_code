@@ -29,21 +29,20 @@ from Libs.Input_generation import make_individual_input_spikes_par, make_offset_
 from Libs.Input_generation import  make_out_all_spikes_par, par_w_step
 
 
-
 #%% Global Settings and Configuration
-MONK_FLAG = 'N' # Options: 'N' or 'C'
+MONK_FLAG = 'C' # Options: 'N' or 'C'
 
-CREATE_INPUTS = True # if you remake inputs you should also do weights, offsets,scale, and thresholds.
-SAVE_INPUTS = True
+CREATE_INPUTS = False # if you remake inputs you should also do weights, offsets,scale, and thresholds.
+SAVE_INPUTS = False
 
-CREATE_W_AND_O = True
-SAVE_W_AND_O = True
+CREATE_W_AND_O = False
+SAVE_W_AND_O = False
 
 CREATE_S_AND_T = False
 SAVE_S_AND_T = False
 
-CREATE_OUTPUTS = True
-SAVE_OUTPUTS = True
+CREATE_OUTPUTS = False
+SAVE_OUTPUTS = False
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')

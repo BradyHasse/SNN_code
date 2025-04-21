@@ -23,17 +23,10 @@ from scipy.io import loadmat, savemat
 import numpy as np
 import pickle
 
-from Libs.Helper_Functions import simple_regress, smooth, make_histos, RMSE, make_norm_histos, magnitude,spike_cause_FR_W,spike_cause_base
-from Libs.Helper_Functions import plthist, spike_cause_count_v4,spike_cause_pot,make_norm_histos_nbins,score_run,bin_frac2,spike_cause_FR_W_all
+from Libs.Helper_Functions import simple_regress, smooth, make_histos, RMSE, make_norm_histos, magnitude
+from Libs.Helper_Functions import plthist, spike_cause_count_v4,spike_cause_pot,make_norm_histos_nbins,score_run,bin_frac2
+from Libs.Helper_Functions import spike_cause_FR_W, spike_cause_base,spike_cause_FR_W_all
 
-#%% load in plot stuff
-num_neurons= 90
-colors= sio.loadmat(CodeDir+'/Data/rgbColorMap.mat')["rgbColors"]
-col_reordered = np.roll(colors,-1,axis=(0))
-colors90 = np.zeros([num_neurons,4])
-for i in range(colors90.shape[1]):
-    colors90[:,i] = np.interp(np.arange(num_neurons), np.linspace(0,num_neurons,colors.shape[0]), col_reordered[:,i])
-colors90 = np.roll(colors90,1,axis=(0))
 #%% which nhp
 # Monk = 'N'
 Monk = 'C'
@@ -77,6 +70,7 @@ speed_times = spkstruct['speed_time']
 gauss_center= spkstruct['gauss_mu'].flatten()
 gauss_sigma= spkstruct['gauss_sigma'].flatten()
 event_landmarks= spkstruct['landmarks'].flatten()
+duration = np.ceil(events[:, :, 5]*10000, )/10#reward time in ms to ceil 0.1ms limit
 
 #%% inp_indices and inp_spikes
 #Read input indices array and input spike array
@@ -85,6 +79,7 @@ with open(spkFile, 'rb') as file:
 with open(indFile, 'rb') as file:
     inp_indices = pickle.load(file)
     
+#%% save inputs in new formats
 inp_spikes_np = np.array(inp_spikes,dtype=object)
 for i in range(inp_spikes_np.shape[0]):
     for ii in range(inp_spikes_np.shape[1]):
@@ -93,7 +88,6 @@ for i in range(inp_spikes_np.shape[0]):
 inp_indices_np = np.array(inp_indices,dtype=object)
 sdata = {'inp_spikes':inp_indices_np,'inp_indices':inp_indices_np}
 sio.savemat(CodeDir+'/Data/Monk'+Monk+'_inputs'+filesuffix[:-3]+'mat',sdata)
-
 #%% Weights
 #Load in previously created weights and offsets
 # Get stored offsets that came from next code section
@@ -127,6 +121,17 @@ with open(OspkFile, 'rb') as f:
 out_all_spikes = oas.tolist()     
 with open(OpotFile, 'rb') as f:
         oap = np.load(f,allow_pickle=True)
+#%% Done loading in data       
+        
+#%% load in colors for plots
+num_neurons= 90
+colors= sio.loadmat(CodeDir+'/Data/rgbColorMap.mat')["rgbColors"]
+col_reordered = np.roll(colors,-1,axis=(0))
+colors90 = np.zeros([num_neurons,4])
+for i in range(colors90.shape[1]):
+    colors90[:,i] = np.interp(np.arange(num_neurons), np.linspace(0,num_neurons,colors.shape[0]), col_reordered[:,i])
+colors90 = np.roll(colors90,1,axis=(0))
+        
 #%% calculate predicted-actual correlation for all units
 
 modscore = []
@@ -145,12 +150,6 @@ RMSEneur, correlation, correlation2 = score_run(actual_hist, num_units, oas[:,:,
 
 sdata = {'correlation':correlation2,'modscore':modscore}
 sio.savemat(CodeDir+'/Data/Monk'+Monk+'_r-score_'+filesuffix[:-3]+'mat',sdata)
-
-# plt.plot(correlation)
-# np.mean(correlation)
-# plt.plot(correlation2)
-# print('mean rscore = '+str(np.round(np.mean(correlation2), decimals=2)))
-# print('median rscore = '+str(np.round(np.median(correlation2), decimals=2)))
 
 
 #%% Prepare matlab files for figures.
@@ -311,7 +310,7 @@ sdata = {'Counts':EAccmeg, 'Percents':EPermeg}
 sio.savemat(CodeDir+'/Data/Monk'+Monk+'_input_spike_counts' + filesuffix[:-3]+'mat',sdata)
 
 reps = [0, events.shape[1]]
-winsiz = 20
+winsiz = 20 #repeated for 0.1 and 20 to do the trigger and buildup. Also changed the save name.
 epochs = [1,2,3]
 EAccmeg = [[[]  for w in range(num_units)] for e in range(len(epochs))]
 EPermeg = [[[]  for w in range(num_units)] for e in range(len(epochs))]
@@ -431,6 +430,11 @@ for inp_group in range(4):
         y = np.ones(num_spikes)*(tt+1)
         plt.plot(ttimes[tt],y,'.')
     plt.show
+    
+    
+    
+    
+
 #%% Display input spike rates for each epoch,  A specific input can be specified
 
 rc("pdf", fonttype=42)
@@ -533,3 +537,153 @@ for epoch in range(1,2):
     plt.plot(testmat2[:,-2])
     plt.show()
 
+#%% Self contained block. Only need to run the initial lines. 
+# run this section before the next if you want to generate inputs with speed set to 0
+import pickle
+import numpy as np
+from brian2 import second
+from random import randint
+import multiprocessing
+n_cores = multiprocessing.cpu_count()-2 #number of core for parallel processing
+# Import helper functions from libraries
+ 
+
+from Libs.Input_generation import make_individual_input_spikes_par
+
+
+IND_FILE_S = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'Monk{Monk}_input_indices_no-speed{filesuffix[:-4]}.pickle')
+SPK_FILE_S = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'Monk{Monk}_input_spikes_no-speed{filesuffix[:-4]}.pickle')
+
+#Generate input indices array and input spike array
+targ_rep = []
+max_speed = 0.05
+
+max_speeds = []
+for i in range(speed_all.shape[0]):
+    for j in range(speed_all.shape[0]):
+        max_speeds.append(np.max(speed_all[i,j]))
+max_speed = np.max(np.array(max_speeds))
+for targ in range(rep_cnt.shape[0]):
+    for rep in range(rep_cnt[targ]):
+        # speed_all[targ, rep] = np.zeros(speed_all[targ, rep].shape)+0.001
+        targ_rep.append([targ, rep, randint(0, 9**9)])
+args = [events.shape[0], rep_cnt, events, duration, speed_all, speed_times,
+        gauss_center, gauss_sigma, event_landmarks, max_speed]
+new_iterable = ([x, args] for x in targ_rep)
+if __name__ == '__main__':
+    multiprocessing.freeze_support()
+    with multiprocessing.Pool(n_cores) as p:
+        results = p.map(make_individual_input_spikes_par, new_iterable)
+out_inp_indices = np.ndarray([4, events.shape[0], np.max(rep_cnt)], dtype='object')
+out_inp_spikes = np.ndarray([4, events.shape[0], np.max(rep_cnt)], dtype='object')
+for i in range(len(results)):
+    r = results[i]
+    for j in range(4):
+        out_inp_indices[j, r[2], r[3]] = r[0][j]
+        out_inp_spikes[j, r[2], r[3]]  = r[1][j]*second
+inp_indices = np.ndarray.tolist(out_inp_indices)
+inp_spikes = np.ndarray.tolist(out_inp_spikes)
+
+with open(SPK_FILE_S, 'wb') as file:
+    pickle.dump(inp_spikes, file)
+with open(IND_FILE_S, 'wb') as file:
+    pickle.dump(inp_indices, file)
+    
+# save inputs in new formats
+inp_spikes_np = np.array(inp_spikes,dtype=object)
+for i in range(inp_spikes_np.shape[0]):
+    for ii in range(inp_spikes_np.shape[1]):
+        for iii in range(inp_spikes_np.shape[2]):
+            inp_spikes_np[i,ii,iii] = inp_spikes_np[i,ii,iii]/second
+inp_indices_np = np.array(inp_indices,dtype=object)
+sdata = {'inp_spikes':inp_indices_np,'inp_indices':inp_indices_np}
+sio.savemat(CodeDir+'/Data/Monk'+Monk+'/_no-speed_inputs'+filesuffix[:-3]+'mat',sdata)
+
+
+if (Monk=='C'):
+    unit = 58
+else:
+    unit = 47
+
+sspikes = []
+inp_spike_number = 45
+reps= [0,20]
+for epoch in range(4):
+    star = []
+    for dtarget in range(16):
+        rspks = []
+        for drep in range(reps[0], reps[1]):
+                rspks.append(inp_spikes[epoch][dtarget][drep][inp_indices[epoch][dtarget][drep]==inp_spike_number])
+                # rspks.append(inp_spikes2[epoch][dtarget][drep][inp_indices2[epoch][dtarget][drep]==inp_spike_number])
+        star.append(rspks)
+    sspikes.append(star)
+    
+[histo,xax_labels,mean_ev] =  make_norm_histos(sspikes[0],events[:,reps[0]:reps[1],:],list(np.array(reps)-reps[0]),4,o_binwidth=0.005)
+histo = np.expand_dims(histo,2)
+for inp_group in range(1,4): 
+        histo =  np.append(histo, np.expand_dims(make_norm_histos(sspikes[inp_group],events[:,reps[0]:reps[1],:],list(np.array(reps)-reps[0]),4,o_binwidth=0.005)[0],2), axis=2)
+
+sdata = {'histoin':histo, 'xax_labelsin':xax_labels, 'mean_evin':mean_ev, }
+sio.savemat(CodeDir+'/Data/Monk'+Monk+'/_no-speed_input_FR'+filesuffix[:-3]+'mat',sdata)
+
+
+#%% Self contained block. Only need to run the initial lines. 
+# Create output file without input groups spiking.
+
+from Libs.Input_generation import  make_out_all_spikes_par
+from Libs.Helper_Functions import  ready_make_out_all_spikes_par
+from brian2 import second
+import copy
+import multiprocessing
+n_cores = multiprocessing.cpu_count()-2 #number of core for parallel processing
+
+rep_start = 0
+rep_end = len(inp_indices[0][0])
+for in_group in range(len(inp_indices)):
+    OSP_FILE_S = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'inputgroup{in_group+1}_no-speed_eliminated_output_spikes{filesuffix}')
+    params = np.copy(BestValues)
+    copied_indices = copy.deepcopy(inp_indices)
+    copied_spikes = copy.deepcopy(inp_spikes)
+    for target in range(len(copied_indices[in_group])):
+        for rep in range(len(copied_indices[in_group][target])):
+            copied_indices[in_group][target][rep] = np.array([]).astype(np.int32)
+            copied_spikes[in_group][target][rep] = np.array([]).astype(np.int32)*second
+
+    inps, args = ready_make_out_all_spikes_par(
+        [rep_start, rep_end], copied_indices, copied_spikes, num_units, 
+        weight_multi_3d, duration, params)
+    
+    new_iterable = ([x, args] for x in inps)
+    if __name__ == '__main__':
+        with multiprocessing.Pool(n_cores) as p:
+            results = p.map(make_out_all_spikes_par, new_iterable)
+    oas = np.ndarray(
+        [num_units, len(inp_indices[0]), rep_end-rep_start], dtype='object')
+    oap = np.ndarray(
+        [len(inp_indices[0]), rep_end-rep_start], dtype='object')
+    for i in range(len(results)):
+        r = results[i]
+        oas[:,r[2],r[3]] = r[0]
+        oap[r[2],r[3]] = r[1]
+            
+    with open(OSP_FILE_S, 'wb') as f:
+     	np.save(f, oas)
+         
+reps = [0, len(inp_indices[0][0])]         
+for in_group in range(len(inp_indices)):
+    OspkFile = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'inputgroup{in_group+1}_no-speed_eliminated_output_spikes{filesuffix}')
+    histo_File = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'inputgroup{in_group+1}_no-speed_eliminated_output_hist{filesuffix[:-4]}.mat')
+
+    with open(OspkFile, 'rb') as f:
+            oas = np.load(f,allow_pickle=True).tolist()
+            
+
+    [histo,xax_labels,mean_ev] =  make_norm_histos(oas[0],events,reps,4,o_binwidth=0.005)
+    histo_all = np.zeros([histo.shape[0], histo.shape[1], num_units])
+    for unit in range(num_units):#takes a few seconds
+        [histo_all[:,:,unit],xax_labels,mean_ev] =  make_norm_histos(oas[unit],events,reps,4,o_binwidth=0.005)
+        
+    
+    sdata = {'histo_all':histo_all, 'xax_labels':xax_labels, 'mean_ev':mean_ev}
+    sio.savemat(histo_File,sdata)
+    

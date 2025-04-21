@@ -348,10 +348,10 @@ xax_labels = histo_allA.xax_labels;
 
 %% load in data for histograms without input groups
 ClearCloseClc()
-
-STA = importdata([CodeDir,'\Data\Monk',Monk,'_STA_pot_',MI{1,Mkind},'__',MI{2,Mkind},'.mat']);
 for i = 1:4
-    loadPath = sprintf('%s\\Data\\Monk%s\\inputgroup%i_no-speed_eliminated_output_hist_%s.mat', CodeDir, Monk,i, MI{2,Mkind});
+    saveFile = sprintf('%s\\Figures\\Monk_%s\\FRs\\Missing_Input_Groups\\inputgroup%i_eliminated_output_hist_%s.png',...
+        CodeDir, Monk,i, MI{2,Mkind});
+    loadPath = sprintf('%s\\Data\\Monk%s\\inputgroup%i_eliminated_output_hist_%s.mat', CodeDir, Monk,i, MI{2,Mkind});
     
     
     output_FR = importdata(loadPath);
@@ -363,17 +363,12 @@ for i = 1:4
         histo_all = cat(4, histo_all, output_FR.histo_all);
     end
 end
+%% Plot firing rates (without input groups active)
 
-aphist = squeeze(max(histo_all,[],[1,2,4]));
+aphist = max(histo_all,[],'all');
 ylimset = ceil((aphist+0.05*aphist)./5).*5; ylimset =[zeros(size(ylimset)) ylimset];
-for i = 1:4
-    savePath = sprintf('%s\\Figures\\Monk_%s\\FRs\\Missing_Input_Group%i_no-speed\\',...
-            CodeDir, Monk,i);
-    addpath(savePath)  %Where do all of the functions live?
-    histo = squeeze(histo_all(:,:,:,i));
-    plotFiringRates( xax_labels*1000, histo , ylimset, (mean_ev([7,12,10])*1000)-200,...
-        'Firing Rate (spk/sec)', 'Time (msec)', savePath, 'A',colors);
-    %with patches
-    plotRatesPatches(xax_labels*1000, histo , ylimset, (mean_ev([7,12,10])*1000)-200,...
-        'Firing Rate (spk/sec)', 'Time (msec)', savePath, 'A',colors, STA);
-end
+plotFiringRates(xax_labels*1000, histo_all , ylimset, (mean_ev([7,12,10])*1000)-200, 'Firing Rate (spk/sec)', 'Time (msec)', savePath, 'A',colors);
+plotFiringRates(xax_labels*1000, histo_allP, ylimset, (mean_ev([7,12,10])*1000)-200, 'Firing Rate (spk/sec)', 'Time (msec)', savePath, 'P',colors);
+%with patches
+plotRatesPatches(xax_labels*1000, histo_allP , ylimset, (mean_ev([7,12,10])*1000)-200, 'Firing Rate (spk/sec)', 'Time (msec)', savePath, 'A',colors, STA);
+
