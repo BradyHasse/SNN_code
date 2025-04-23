@@ -1,46 +1,23 @@
 # -*- coding: utf-8 -*-
 """
-Spike-based Neural Network (SNN) Input Generation Library
-
-This module generates spike-based inputs for SNN simulations, including:
-- Three Gaussian rate profiles.
-- A speed-dependent input profile.
-
 Created on Fri Aug  4 14:17:26 2023
-Authors: Andrew, Brady
-"""
+Routines for generating SNN input consisting of three gaussian rate profiles and one based on speed
+Typical usage:
+[inp_indices,inp_spikes]=make_individual_input_spikes(16,rep_cnt,events,duration,speed_all,speed_times,gauss_center,gauss_sigma,event_landmarks)
 
+@author: Andrew
+"""
+#%%   Initialize the enviornment-  Make sure you are in the correct directory
+import matplotlib.pyplot as plt
+from brian2 import SpikeGeneratorGroup,mA,second, mV, volt, Synapses, collect, devices
+from brian2 import NeuronGroup, run, ms, defaultclock, SpikeMonitor, StateMonitor,start_scope,TimedArray,PopulationRateMonitor,PoissonGroup,Hz,second, Network
 import numpy as np
 
-from brian2 import SpikeGeneratorGroup, mA, second, mV, volt, Synapses, collect
-from brian2 import NeuronGroup, run, ms, defaultclock, SpikeMonitor
-from brian2 import start_scope, TimedArray, PopulationRateMonitor, PoissonGroup
-from brian2 import devices, StateMonitor, Hz, second, Network
+from Libs.Helper_Functions import simple_regress, smooth, make_histos, RMSE, make_norm_histos, magnitude, make_norm_histos_nbins, score_run
 
-from Libs.Helper_Functions import simple_regress, smooth, make_histos, RMSE
-from Libs.Helper_Functions import make_norm_histos, magnitude
-from Libs.Helper_Functions import make_norm_histos_nbins, score_run
 
 #%% make_individual_input_spikes   
 def make_individual_input_spikes_par(args):
-    """
-Master function for generating input spike trains.
-
-Calls subroutines to create spike trains based on Gaussian rate profiles 
-and speed-dependent inputs.
-
-Parameters:
-    args (tuple): Contains input parameters including target index, repetition index,
-                  seed value, number of targets, event data, trial duration, speed profiles,
-                  Gaussian parameters, and landmark event times.
-
-Returns:
-    tuple: (indices, spike_times, target, repetition)
-        - indices: List of neuron indices generating spikes.
-        - spike_times: Corresponding spike times.
-        - target: Target index for the movement direction.
-        - repetition: Repetition index.
-"""
     # This is the master program for making input spikes-  calls the other input generation routines
     target = args[0][0]
     rep = args[0][1]
@@ -56,20 +33,21 @@ Returns:
     gauss_sigma = args[1][7]
     event_landmarks = args[1][8]
     maxspeed = args[1][9]
-       
-    num_neurons = 90
-    speed_gain = 1  
-    speed_lag = 50 
-    inp_groups = 4
+    
+    
 
     dir_range= np.linspace(0,2*np.pi-(2*np.pi)/num_targets,num_targets)
-    direction = dir_range[target]
-
+    num_neurons = 90
+    # speed_gain = 2   #changing to default
+    speed_gain = 1  #4.5
+    speed_lag = 50 #71
+    inp_groups = 4
     
     out_inp_indices = np.ndarray(inp_groups, dtype='object')
     out_inp_spikes = np.ndarray(inp_groups, dtype='object')
 
     mev = np.mean(events,1)
+    direction = dir_range[target]
 
     mtarget_show = mev[target][2]
     mstart_movement = mev[target][6]
@@ -77,9 +55,9 @@ Returns:
     mreward = mev[target][5]
     mend_movement = mev[target][9]
     menter_target = mev[target][8]
-    int1 = (mstart_movement-gauss_center[0])*1000 # start_movement
-    int2 = (mpk_speed_time-gauss_center[1])*1000 # pk_speed_time
-    int3 = (mend_movement-gauss_center[2])*1000 # end_movement
+    int1 = (mstart_movement-gauss_center[0])*1000
+    int2 = (mpk_speed_time-gauss_center[1])*1000
+    int3 = (mend_movement-gauss_center[2])*1000
     try:
         len(rep_in)
         num_reps = rep_in[target]
@@ -94,68 +72,64 @@ Returns:
     speed_s = speed[np.logical_and(sp_times>=ev[6], sp_times<=ev[9])]
     sp_times_slice_s = sp_times[np.logical_and(sp_times>=ev[6], sp_times<=ev[9])]
       
-    center = [ev[6]-int1, ev[11]-int2, ev[9]-int3]*10
-    width = gauss_sigma*1000*10   
-    for i in range(3):
-        out_inp_indices_,out_inp_spikes_ = make_input_spikes(duration,direction,num_neurons,center[i],width[i],speed,sp_times_slice,speed_lag,seed+i,maxspeed) #.35 worked well but background was too high for training
-        out_inp_indices[i] = np.copy(out_inp_indices_)
-        out_inp_spikes[i] = np.copy(out_inp_spikes_/second)
+    center1 = ev[6]-int1 #start_movement
+    center2 = ev[11] -int2 #pk_speed_time
+    center3 = ev[9]-int3  #end_movement
+
+    # width1 = gauss_sigma[0]*300   #changing to default width 
+    # width2 = gauss_sigma[1]*500#changing to default width
+    # width3 = gauss_sigma[2]*300#changing to default width
+    width1 = gauss_sigma[0]*1000   
+    width2 = gauss_sigma[1]*1000
+    width3 = gauss_sigma[2]*1000
+
+    out_inp_indices_,out_inp_spikes_ = make_input_spikes(duration,direction,num_neurons,center1*10,width1*10,speed,sp_times_slice,speed_lag,seed,maxspeed) #.35 worked well but background was too high for training
+    out_inp_indices[0] = np.copy(out_inp_indices_)
+    out_inp_spikes[0] = np.copy(out_inp_spikes_/second)
+    
+    out_inp_indices_,out_inp_spikes_ = make_input_spikes(duration,direction,num_neurons,center2*10,width2*10,speed,sp_times_slice,speed_lag,seed+1,maxspeed) #gain = 3
+    out_inp_indices[1] = np.copy(out_inp_indices_)
+    out_inp_spikes[1] = np.copy(out_inp_spikes_/second)
+    
+    out_inp_indices_,out_inp_spikes_ = make_input_spikes(duration,direction,num_neurons,center3*10,width3*10,speed,sp_times_slice,speed_lag,seed+2,maxspeed)
+    out_inp_indices[2] = np.copy(out_inp_indices_)
+    out_inp_spikes[2] = np.copy(out_inp_spikes_/second)
     
     out_inp_indices_,out_inp_spikes_ = make_input_spikes_speed(duration,num_neurons,speed_s,sp_times_slice_s,speed_lag,seed+3,maxspeed)
     out_inp_indices[3] = np.copy(out_inp_indices_)
     out_inp_spikes[3] = np.copy(out_inp_spikes_/second)
     
+    # print('Finished target ',target,' rep ' ,rep ) 
 
     return(out_inp_indices, out_inp_spikes, target, rep)
 
 #%% make_input_spikes
 def make_input_spikes(duration,direction,num_neurons,center,width,speed,speed_points,speed_lag,seed,maxspeed):
-    """
-    Generates spike trains using a Gaussian firing rate profile.
-
-    Parameters:
-        duration (float): Trial duration in milliseconds.
-        direction (float): Preferred movement direction.
-        num_neurons (int): Number of neurons in the group.
-        center (float): Center of the Gaussian firing rate function (ms).
-        width (float): Width of the Gaussian (ms).
-        speed (np.array): Speed profile data.
-        speed_points (np.array): Time points for speed data.
-        speed_lag (int): Speed profile lag (ms).
-        seed (int): Random seed for reproducibility.
-        maxspeed (float): Maximum speed normalization factor.
-
-    Returns:
-        tuple: (all_indices, all_occ)
-            - all_indices: Neuron indices generating spikes.
-            - all_occ: Corresponding spike times.
-    """
+#Uses Hongwei's equations for adding noise
+# Make a set of num_neurons, each with a different prefered direction, with firing rates dictated by gaussian input 
+    #print('direction',direction,'gaincenter',center,'width',width, 'speed_center',speed_center)
     start_scope()
     devices.device.seed(seed=seed)
     
-    vr = -70*mV # resting potential level
-    vt = -55*mV # threshold for firing of action potential
+    vr = -70*mV#-70*mV 	# resting potential level
+    vt = -55*mV#0.35*volt# threshold for firing of action potential
     baseFR = 35
-    noise_sigma  = 0.15*(vt-vr)	# sigma of noise added to membrane potential
+    n_sigma = 0.15*(vt-vr)	# 0.05; sigma of noise added to membrane potential
     
-    inputs =  gaussian_input_speed(
-        duration, direction, num_neurons, center, width,
-        speed, speed_points, speed_lag, seed, maxspeed)
-    
+    inputs =  gaussian_input_speed(duration,direction,num_neurons,center,width,speed,speed_points,speed_lag,seed,maxspeed)
     trans_inputs = np.transpose(inputs)
     trans_inputs = ((trans_inputs*(vt-vr))+0.50*(vt-vr))/(50/baseFR)
     v_drive = TimedArray(trans_inputs, dt=defaultclock.dt)# gain was 1  and offset was .86
-    '''
-    eqs defines the differential equation(s) for membrane potential
-    potential is locked (no change) during refractory period
-    xi: noise added to membrane potential; otherwise spikes are sync-ed across neurons
-    v_drive: a gaussian shaped input voltage that serves as inputs
-    amplitude of gaussian goes from negative to positive across neurons
-    i:  neuron index, 0 ~ N-1
-    '''
+
+    # eqs defines the differential equation(s) for membrane potential
+    #     potential is locked (no change) during refractory period
+    # xi: noise added to membrane potential; otherwise spikes are sync-ed across neurons
+    # v_drive: a gaussian shaped input voltage that serves as inputs
+    #          amplitude of gaussian goes from negative to positive across neurons
+    # i:  neuron index, 0 ~ N-1
     
     eqs = '''
-    dv/dt = (v_drive(t,i))/tau + noise_sigma *xi*(tau**-0.5): volt
+    dv/dt = (v_drive(t,i))/tau + n_sigma*xi*(tau**-0.5): volt
     tau:second 
     '''
     # reset potential to this value after each spike
@@ -163,55 +137,79 @@ def make_input_spikes(duration,direction,num_neurons,center,width,speed,speed_po
     v = vr
     '''
 
-    G = NeuronGroup(
-        num_neurons, eqs, threshold='v>vt', reset=reset, 
-        refractory=10*ms, method='euler')
+    G = NeuronGroup(num_neurons, eqs, threshold='v>vt', reset=reset, refractory=10*ms, method='euler')
     
     # randomize initial membrane potential values
     G.v = 'rand()*(vt-vr)+vr'
     G.tau= 10 *ms
 
-    SM = SpikeMonitor(G, record = True)
+    SM = SpikeMonitor(G,record= True)
     
     # run the simulation for specified duration
-    run(duration * ms)
+    run(duration*ms)
 
     all_indices=SM.i;
     all_occ= SM.t
+    
+    
+    # plt.figure()
+    # ax= plt.gca()
+    # ax.set_prop_cycle(plt.cycler('color', colors90)) 
+    # plt.plot(trans_inputs)
+    # plt.show()
+    
+    # reps = [0,1]  
+    # events = events[:,reps[0]:reps[1],:]
+    # numsegs = 4
+    # events = events[0,reps[0]:reps[1],:]
+    # events = np.tile(events, [90,1])
+    # events = np.expand_dims(events,1)
+    
+    # inds = np.array(all_indices)#this block is used to check what inputs look like.
+    # occs = np.array(all_occ)
+    
+    # plt.figure()
+    # ax= plt.gca()
+    # ax.set_prop_cycle(plt.cycler('color', colors90)) 
+    # for ind in range(num_neurons):
+    #     ttimes = occs[inds==ind]
+    #     num_spikes = len(ttimes) 
+    #     y = np.ones(num_spikes)*(ind+1)
+    #     plt.plot(ttimes,y,'.')
+    #     plt.title(len(occs))
+    # plt.show()
+        
+    # occs2 = []   
+    # for ind in range(num_neurons): 
+    #     occs2.append([occs[inds==ind]])
+    # occs3 = np.array(occs2,dtype=object)
+    # in_array = occs3  
+    # [histo,xax_labels,mean_ev] =  make_norm_histos(occs3,events,reps,4)
+    # plt.figure()
+    # ax= plt.gca()
+    # ax.set_prop_cycle(plt.cycler('color', colors90)) 
+    # ax.spines['right'].set_visible(False)
+    # ax.spines['top'].set_visible(False)
+    # for i in range(90):
+    #     plt.plot(histo[:,i],lw = 2)
+    
     return(all_indices,all_occ) 
 #%% make_input_spikes_speed
 def make_input_spikes_speed(duration,num_neurons,speed,speed_points,speed_lag,seed,maxspeed):
-    """
-    Generates input spike trains based on speed, using a noise-driven LIF model.
-    Matches structure of `make_input_spikes` for a non-directional component.
-    
-    Parameters:
-        duration (float): Duration of simulation in milliseconds.
-        num_neurons (int): Number of neurons in the group.
-        speed (array-like): Speed values to drive the input.
-        speed_points (int): Number of time points for the speed input.
-        speed_lag (float): Lag applied to the speed signal.
-        seed (int): Random seed for reproducibility.
-        maxspeed (float): Maximum speed value for normalization.
-        
-    Returns:
-        tuple: Spike indices and corresponding spike times.
-    """
-
+    #New input class for non-directional component
+    #Matched to make_input_spikes
     start_scope()
     devices.device.seed(seed=seed)
     
-    # Membrane potential parameters
-    vr = -70 * mV       # Resting potential
-    vt = -55 * mV       # Firing threshold
-    base_fr = 35        # Baseline firing rate
-    n_sigma = 0.10 * (vt - vr)  # Noise standard deviation
-            
-    # Generate and scale input drive
-    inputs = make_ndd(duration, num_neurons, speed, speed_points, speed_lag, maxspeed)
+    vr = -70*mV#-70*mV 	# resting potential level
+    vt = -55*mV#0.35*volt# threshold for firing of action potential
+    baseFR = 35
+    n_sigma = 0.10*(vt-vr)	# 0.05; sigma of noise added to membrane potential
+    
+    inputs =  make_ndd(duration,num_neurons,speed,speed_points,speed_lag,maxspeed)
     trans_inputs = np.transpose(inputs)
-    trans_inputs = ((trans_inputs * (vt - vr)) + 0.5 * (vt - vr)) / (50 / base_fr)
-    v_drive = TimedArray(trans_inputs, dt=defaultclock.dt)
+    trans_inputs = ((trans_inputs*(vt-vr))+0.50*(vt-vr))/(50/baseFR)
+    v_drive = TimedArray(trans_inputs, dt=defaultclock.dt)# gain was 1  and offset was .86
     
     eqs = '''
     dv/dt = (v_drive(t,i))/tau + n_sigma*xi*(tau**-0.5): volt
@@ -221,25 +219,63 @@ def make_input_spikes_speed(duration,num_neurons,speed,speed_points,speed_lag,se
     v = vr
     '''
     
-    # Create neuron group
-    G = NeuronGroup(
-        num_neurons, eqs,
-        threshold='v > vt',
-        reset=reset,
-        refractory=10 * ms,
-        method='euler'
-    )
-
+    G = NeuronGroup(num_neurons, eqs, threshold='v>vt', reset= reset,refractory=10*ms,  method='euler')
     
-    G.tau= 10 * ms
-    G.v = 'rand() * (vt - vr) + vr'
+    G.tau= 10 *ms
+    G.v = 'rand()*(vt-vr)+vr'
     
-    SM = SpikeMonitor(G, record = True)
+    SM = SpikeMonitor(G,record= True)
 
-    # run simulation
-    run(duration * ms)
-  
-    return(SM.i, SM.t)
+    # run the simulation for specified duration
+    run(duration*ms)
+
+    all_indices=SM.i;
+    all_occ= SM.t
+    
+    
+    # plt.figure()
+    # ax= plt.gca()
+    # ax.set_prop_cycle(plt.cycler('color', colors90)) 
+    # plt.plot(trans_inputs)
+    # plt.show()
+    
+    # reps = [0,1]  
+    # events = events[:,reps[0]:reps[1],:]
+    # numsegs = 4
+    # events = events[0,reps[0]:reps[1],:]
+    # events = np.tile(events, [90,1])
+    # events = np.expand_dims(events,1)
+    
+    # inds = np.array(all_indices)#this block is used to check what inputs look like.
+    # occs = np.array(all_occ)
+    
+    # plt.figure()
+    # ax= plt.gca()
+    # ax.set_prop_cycle(plt.cycler('color', colors90)) 
+    # for ind in range(num_neurons):
+    #     ttimes = occs[inds==ind]
+    #     num_spikes = len(ttimes) 
+    #     y = np.ones(num_spikes)*(ind+1)
+    #     plt.plot(ttimes,y,'.')
+    #     plt.title(len(occs))
+    # plt.show()
+        
+    # occs2 = []   
+    # for ind in range(num_neurons): 
+    #     occs2.append([occs[inds==ind]])
+    # occs3 = np.array(occs2,dtype=object)
+    # in_array = occs3  
+    # [histo,xax_labels,mean_ev] =  make_norm_histos(occs3,events,reps,4)
+    # plt.figure()
+    # ax= plt.gca()
+    # ax.set_prop_cycle(plt.cycler('color', colors90)) 
+    # ax.spines['right'].set_visible(False)
+    # ax.spines['top'].set_visible(False)
+    # for i in range(90):
+    #     plt.plot(histo[:,i],lw = 2)
+
+
+    return(all_indices,all_occ)
 
 #%% gaussian_input_speed
 def gaussian_input_speed (duration,direction,num_neurons,center,gauss_sigma,speed_profile,speed_points,speed_lag,seed,maxspeed):
@@ -648,7 +684,6 @@ def make_out_all_spikes_par(args):
     unit_pot = M.v
     
     return unit_spikes, unit_pot, target, rep
-
 
 
 

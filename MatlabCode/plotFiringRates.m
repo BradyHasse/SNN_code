@@ -10,7 +10,7 @@ function plotFiringRates(xax_labelsms, histo_data, ylimset, mevms, ylab, xlab, s
         hold on;
         plot(mevms, zeros(size(mevms)), 'pentagram', 'Color', 'k', 'LineWidth', 8);
         axis tight;
-        set(f1.Children, 'box', 'off', 'LineWidth', 3, 'FontSize', 32, 'fontname', 'Arial', 'YLim', ylimset(j,:), 'TickDir', 'out');
+        set(f1.Children, 'box', 'off', 'LineWidth', 3, 'FontSize', 32, 'fontname', 'Arial', 'YLim', ylimset(j,:)+[0,.0001], 'TickDir', 'out');
         ylabel(ylab);
         xlabel(xlab);
         

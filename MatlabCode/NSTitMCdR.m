@@ -350,9 +350,8 @@ xax_labels = histo_allA.xax_labels;
 ClearCloseClc()
 
 STA = importdata([CodeDir,'\Data\Monk',Monk,'_STA_pot_',MI{1,Mkind},'__',MI{2,Mkind},'.mat']);
-for i = 1:4
-    loadPath = sprintf('%s\\Data\\Monk%s\\inputgroup%i_no-speed_eliminated_output_hist_%s.mat', CodeDir, Monk,i, MI{2,Mkind});
-    
+for i = 1:16
+    loadPath = sprintf('%s\\Data\\Monk%s\\combo%i_no-speed_output_hist_%s.mat', CodeDir, Monk,i, MI{2,Mkind});
     
     output_FR = importdata(loadPath);
     if i == 1
@@ -366,8 +365,8 @@ end
 
 aphist = squeeze(max(histo_all,[],[1,2,4]));
 ylimset = ceil((aphist+0.05*aphist)./5).*5; ylimset =[zeros(size(ylimset)) ylimset];
-for i = 1:4
-    savePath = sprintf('%s\\Figures\\Monk_%s\\FRs\\Missing_Input_Group%i_no-speed\\',...
+for i = 1:16
+    savePath = sprintf('%s\\Figures\\Monk_%s\\FRs\\combo%i_no-speed\\',...
             CodeDir, Monk,i);
     addpath(savePath)  %Where do all of the functions live?
     histo = squeeze(histo_all(:,:,:,i));

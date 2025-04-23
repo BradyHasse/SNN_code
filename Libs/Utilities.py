@@ -558,14 +558,14 @@ SPK_FILE_S = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'Monk{Monk}_input_spi
 targ_rep = []
 max_speed = 0.05
 
-max_speeds = []
-for i in range(speed_all.shape[0]):
-    for j in range(speed_all.shape[0]):
-        max_speeds.append(np.max(speed_all[i,j]))
-max_speed = np.max(np.array(max_speeds))
+# max_speeds = []
+# for i in range(speed_all.shape[0]):
+#     for j in range(speed_all.shape[0]):
+#         max_speeds.append(np.max(speed_all[i,j]))
+# max_speed = np.max(np.array(max_speeds))
 for targ in range(rep_cnt.shape[0]):
     for rep in range(rep_cnt[targ]):
-        # speed_all[targ, rep] = np.zeros(speed_all[targ, rep].shape)+0.001
+        speed_all[targ, rep] = np.zeros(speed_all[targ, rep].shape)+0.001
         targ_rep.append([targ, rep, randint(0, 9**9)])
 args = [events.shape[0], rep_cnt, events, duration, speed_all, speed_times,
         gauss_center, gauss_sigma, event_landmarks, max_speed]
@@ -634,20 +634,25 @@ from Libs.Input_generation import  make_out_all_spikes_par
 from Libs.Helper_Functions import  ready_make_out_all_spikes_par
 from brian2 import second
 import copy
+import itertools
 import multiprocessing
 n_cores = multiprocessing.cpu_count()-2 #number of core for parallel processing
 
 rep_start = 0
 rep_end = len(inp_indices[0][0])
-for in_group in range(len(inp_indices)):
-    OSP_FILE_S = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'inputgroup{in_group+1}_no-speed_eliminated_output_spikes{filesuffix}')
+combinations = np.array(list(itertools.product([True, False], repeat=4)), dtype=bool)
+
+for combo in range(combinations.shape[0]):
+    OSP_FILE_S = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'combo{combo+1}_no-speed_output_spikes{filesuffix}')
     params = np.copy(BestValues)
     copied_indices = copy.deepcopy(inp_indices)
     copied_spikes = copy.deepcopy(inp_spikes)
-    for target in range(len(copied_indices[in_group])):
-        for rep in range(len(copied_indices[in_group][target])):
-            copied_indices[in_group][target][rep] = np.array([]).astype(np.int32)
-            copied_spikes[in_group][target][rep] = np.array([]).astype(np.int32)*second
+    
+    for in_group in np.where(combinations[combo,:])[0].tolist():
+        for target in range(len(copied_indices[in_group])):
+            for rep in range(len(copied_indices[in_group][target])):
+                copied_indices[in_group][target][rep] = np.array([]).astype(np.int32)
+                copied_spikes[in_group][target][rep] = np.array([]).astype(np.int32)*second
 
     inps, args = ready_make_out_all_spikes_par(
         [rep_start, rep_end], copied_indices, copied_spikes, num_units, 
@@ -670,9 +675,9 @@ for in_group in range(len(inp_indices)):
      	np.save(f, oas)
          
 reps = [0, len(inp_indices[0][0])]         
-for in_group in range(len(inp_indices)):
-    OspkFile = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'inputgroup{in_group+1}_no-speed_eliminated_output_spikes{filesuffix}')
-    histo_File = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'inputgroup{in_group+1}_no-speed_eliminated_output_hist{filesuffix[:-4]}.mat')
+for combo in range(combinations.shape[0]):
+    OspkFile = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'combo{combo+1}_no-speed_output_spikes{filesuffix}')
+    histo_File = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'combo{combo+1}_no-speed_output_hist{filesuffix[:-4]}.mat')
 
     with open(OspkFile, 'rb') as f:
             oas = np.load(f,allow_pickle=True).tolist()
