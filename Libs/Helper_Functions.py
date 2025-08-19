@@ -1156,53 +1156,32 @@ def spike_cause_pot(events, oas, oap, gauss_center):
             - centers (np.ndarray): Adjusted event times used for alignment.
     """
 
-    winsiz = 200  # 20 ms window size
-    width = 60  # Window width for spike selection
-    event_indices = np.array([6, 11, 9])  # Indices for movement events: start, peak speed, end
 
-    # Convert event times to 0.1 ms resolution
-    t_events = events[:, :, event_indices] * 10000  
-
-    # Compute mean event times and adjust for Gaussian center
-    mev = np.mean(t_events, axis=(0, 1))  
-    time_adjustments = (mev - gauss_center * 10000)
-
-    # Reshape adjustments for broadcasting
-    time_adjustments = np.transpose(np.expand_dims(time_adjustments, (1, 2)), axes=[2, 1, 0])
-
-    # Compute movement event centers
-    centers = np.squeeze(t_events - np.tile(time_adjustments, [t_events.shape[0], t_events.shape[1], 1]))
-    centers = np.round(centers).astype(int)
-
-    # Initialize container for potential snippets
-    pot_snips = np.empty((oas.shape[0], oas.shape[1], oas.shape[2], 3), dtype=object)
-
-    # Iterate over all units, targets, and repetitions
+    winsiz = 200#20ms
+    width = 60
+    eventInds = np.array([6, 11, 9])#start_movement (6) pk_speed (11) end_movement (9)
+    
+    t_events = events[:,:,eventInds]*10000
+    mev = np.mean(t_events,axis=(0,1))
+    ints = (mev-gauss_center*10000)
+    ints = np.transpose(np.expand_dims(ints,(1,2)), axes=[2,1,0])
+    
+    centers = np.squeeze(t_events - np.tile(ints, [t_events.shape[0], t_events.shape[1], 1]))
+    centers = np.round(centers)
+    centers = centers.astype(int)
+    
+    
+    pot_snips = np.empty((oas.shape[0], oas.shape[1], oas.shape[2], 3), dtype =  object)
     for unit in range(oas.shape[0]):
         for target in range(oas.shape[1]):
             for rep in range(oas.shape[2]):
-                # Convert spike times to 0.1 ms resolution
-                spike_times = ((oas[unit, target, rep]) * 10).astype(int)
-
-                # Retrieve corresponding potentials
-                potentials = oap[target, rep][unit, :]
-
-                # Process each epoch
+                uoi = ((oas[unit,target,rep]/ms)*10).astype(int)
+                potentials = oap[target,rep][unit,:]
                 for epoch in range(3):
-                    # Find spikes within the defined window around the event center
-                    valid_spikes = spike_times[
-                        (spike_times > centers[target, rep, epoch] - width) & 
-                        (spike_times <= centers[target, rep, epoch] + width)
-                    ]
-
-                    # Initialize storage for extracted potentials
-                    pot_snips[unit, target, rep, epoch] = np.zeros([len(valid_spikes), winsiz])
-
-                    # Extract corresponding potential windows
-                    for s in range(len(valid_spikes)):
-                        pot_snips[unit, target, rep, epoch][s, :] = potentials[
-                            (valid_spikes[s] - winsiz + 1) : valid_spikes[s] + 1
-                        ]
+                    uoi2 = uoi[(uoi > centers[target,rep, epoch]-width) & (uoi <= centers[target,rep, epoch]+width)]
+                    pot_snips[unit, target,rep,epoch] = np.zeros([len(uoi2),winsiz])
+                    for s in range(len(uoi2)):
+                        pot_snips[unit, target,rep,epoch][s,:] = potentials[(uoi2[s]-winsiz+1):uoi2[s]+1]
 
     return pot_snips, mev, centers
 

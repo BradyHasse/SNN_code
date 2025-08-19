@@ -641,7 +641,6 @@ n_cores = multiprocessing.cpu_count()-2 #number of core for parallel processing
 rep_start = 0
 rep_end = len(inp_indices[0][0])
 combinations = np.array(list(itertools.product([True, False], repeat=4)), dtype=bool)
-
 for combo in range(combinations.shape[0]):
     OSP_FILE_S = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'combo{combo+1}_no-speed_output_spikes{filesuffix}')
     params = np.copy(BestValues)
@@ -691,4 +690,68 @@ for combo in range(combinations.shape[0]):
     
     sdata = {'histo_all':histo_all, 'xax_labels':xax_labels, 'mean_ev':mean_ev}
     sio.savemat(histo_File,sdata)
+#%% Self contained block. Only need to run the initial lines. 
+# get potentials before spikes. Same as block above with added potential stuff.
+
+
+from Libs.Input_generation import  make_out_all_spikes_par
+from Libs.Helper_Functions import  ready_make_out_all_spikes_par
+from brian2 import second
+import copy
+import itertools
+import multiprocessing
+n_cores = multiprocessing.cpu_count()-2 #number of core for parallel processing
+
+
+         
+if (Monk=='C'):
+    unit = 58
+else:
+    unit = 47
+rep_start = 0
+rep_end = len(inp_indices[0][0])
+combinations = np.array(list(itertools.product([True, False], repeat=4)), dtype=bool)
+for combo in range(combinations.shape[0]):
+    OSP_FILE_S = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'combo{combo+1}_no-speed_output_pot_unit{str(unit)}{filesuffix[:-3]}mat')
+    params = np.copy(BestValues)
+    copied_indices = copy.deepcopy(inp_indices)
+    copied_spikes = copy.deepcopy(inp_spikes)
     
+    for in_group in np.where(combinations[combo,:])[0].tolist():
+        for target in range(len(copied_indices[in_group])):
+            for rep in range(len(copied_indices[in_group][target])):
+                copied_indices[in_group][target][rep] = np.array([]).astype(np.int32)
+                copied_spikes[in_group][target][rep] = np.array([]).astype(np.int32)*second
+
+    inps, args = ready_make_out_all_spikes_par(
+        [rep_start, rep_end], copied_indices, copied_spikes, num_units, 
+        weight_multi_3d, duration, params)
+    
+    new_iterable = ([x, args] for x in inps)
+    if __name__ == '__main__':
+        with multiprocessing.Pool(n_cores) as p:
+            results = p.map(make_out_all_spikes_par, new_iterable)
+    oas = np.ndarray(
+        [num_units, len(inp_indices[0]), rep_end-rep_start], dtype='object')
+    oap = np.ndarray(
+        [len(inp_indices[0]), rep_end-rep_start], dtype='object')
+    for i in range(len(results)):
+        r = results[i]
+        oas[:,r[2],r[3]] = r[0]
+        oap[r[2],r[3]] = r[1]
+        
+    target = 4    
+    winsiz = 200#20ms
+    epoch = 1
+    testmat3 = np.zeros([0,winsiz])
+    testmat = np.zeros([0,winsiz])
+    pot_snips, mev, centers = spike_cause_pot(events,oas,oap,gauss_center)
+    for rep in range(oas.shape[2]):
+        testmat = np.append(testmat, pot_snips[unit,target,rep,epoch],axis = 0)
+    testmat3 = np.append(testmat3, testmat,axis = 0)
+    
+    sdata = {'mev':mev, 'centers':centers, 'sta_pot':testmat3,'threshold':params[unit,4]}
+    sio.savemat(OSP_FILE_S,sdata)            
+        
+        
+

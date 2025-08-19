@@ -377,28 +377,22 @@ for i = 1:16
         'Firing Rate (spk/sec)', 'Time (msec)', savePath, 'A',colors, STA);
 end
 %% load in data for STA figure - without input groups active
-ClearCloseClc()
 for i = 1:16
-
-
-    loadPath = sprintf('%s\\Data\\Monk%s\\combo%i_no-speed_output_pot_unit58_%s.mat', CodeDir, Monk,i, MI{2,Mkind});
-    STA = importdata(loadPath);
-    try
-        sta = STA.sta_pot;
-        threshold = STA.threshold;
-        % Make 20ms STA figure
-        savePath = sprintf('%s\\Figures\\Monk_%s\\STA\\combo%i_no-speed_20ms\\',...
+    ClearCloseClc()
+    STA = importdata([CodeDir,'\Data\Monk',Monk,'_STA_pot_',MI{1,Mkind},'__',MI{2,Mkind},'.mat']);
+    
+    sta = STA.sta_pot;
+    threshold = STA.threshold;
+    % Make 20ms STA figure
+    savePath = sprintf('%s\\Figures\\Monk_%s\\FRs\\combo%i_no-speed\\',...
             CodeDir, Monk,i);
-        XTick = -20:2.5:0;
-        XTickL = cellstr(string(XTick));
-        plotSTA(sta, threshold, XTick, XTickL, (-199:0)/10, 'Membrane Potential (a.u.)', savePath, '20ms');
-        
-        % Make 5ms STA figure
-        savePath = sprintf('%s\\Figures\\Monk_%s\\STA\\combo%i_no-speed_5ms\\',...
-            CodeDir, Monk,i);
-        XTick = -5:1:0;
-        XTickL = cellstr(string(XTick));
-        plotSTA(sta(:, end-49:end), threshold, XTick, XTickL, (-49:0)/10, 'Membrane Potential (a.u.)', savePath, '05ms');
-
-    end
+    savePath = sprintf('%s\\Figures\\Monk_%s\\STA', CodeDir, Monk);
+    XTick = -20:2.5:0;
+    XTickL = cellstr(string(XTick));
+    plotSTA(sta, threshold, XTick, XTickL, (-199:0)/10, 'Membrane Potential (a.u.)', savePath, '20ms');
+    
+    % Make 5ms STA figure
+    XTick = -5:1:0;
+    XTickL = cellstr(string(XTick));
+    plotSTA(sta(:, end-49:end), threshold, XTick, XTickL, (-49:0)/10, 'Membrane Potential (a.u.)', savePath, '05ms');
 end
