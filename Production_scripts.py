@@ -32,16 +32,16 @@ from Libs.Input_generation import  make_out_all_spikes_par, par_w_step
 #%% Global Settings and Configuration
 MONK_FLAG = 'C' # Options: 'N' or 'C'
 
-CREATE_INPUTS = True # if you remake inputs you should also do weights, offsets,scale, and thresholds.
+CREATE_INPUTS = False # if you remake inputs you should also do weights, offsets,scale, and thresholds.
 SAVE_INPUTS = False
 
-CREATE_W_AND_O = True
+CREATE_W_AND_O = False
 SAVE_W_AND_O = False
 
-CREATE_S_AND_T = True
+CREATE_S_AND_T = False
 SAVE_S_AND_T = False
 
-CREATE_OUTPUTS = True
+CREATE_OUTPUTS = False
 SAVE_OUTPUTS = False
 
 # Configure logging
@@ -61,7 +61,7 @@ if MONK_FLAG == 'N':
     file_suffix = '_05-04-2024-18-01-17.npy'
     spk_struct = sio.loadmat(os.path.join(CODE_DIR, 'Data', 'MonkN359Selected.mat'))
 elif MONK_FLAG == 'C':    
-    file_suffix = '_06-04-2024-21-46-41.npy'
+    file_suffix = '_28-06-2024-15-09-50.npy'
     spk_struct = sio.loadmat(os.path.join(CODE_DIR, 'Data', 'MonkCDataSelected.mat'))
 else:
     raise ValueError("Invalid MONK_FLAG. Choose 'N' or 'C'.")
@@ -254,13 +254,13 @@ if CREATE_S_AND_T:
     reps = [0,20]#make actual hist for comparison 
     actual_spikes= r_allL[0]#first unit to init
     [actual_hist,d,e,n_bins] =  make_norm_histos_nbins(
-        actual_spikes,events,reps,4,o_bin_width=0.005)
+        actual_spikes,events,reps,4,o_binwidth=0.005)
     actual_hist = np.zeros(
         [num_units, actual_hist.shape[0], actual_hist.shape[1]])
     for u in range(num_units):
         actual_spikes= r_allL[u]
         [actual_hist[u, :, :], d, e, n_bins] = make_norm_histos_nbins(
-            actual_spikes, events, reps, 4, n_bins, o_bin_width=0.005)
+            actual_spikes, events, reps, 4, n_bins, o_binwidth=0.005)
     av_FR = np.mean(actual_hist, axis=(2, 1))
 
     BV_hist = []
