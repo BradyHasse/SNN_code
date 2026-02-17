@@ -32,10 +32,10 @@ from Libs.Input_generation import  make_out_all_spikes_par, par_w_step
 #%% Global Settings and Configuration
 MONK_FLAG = 'C' # Options: 'N' or 'C'
 
-CREATE_INPUTS = True # if you remake inputs you should also do weights, offsets,scale, and thresholds.
+CREATE_INPUTS = False # if you remake inputs you should also do weights, offsets,scale, and thresholds.
 SAVE_INPUTS = False
 
-CREATE_W_AND_O = True
+CREATE_W_AND_O = False
 SAVE_W_AND_O = False
 
 CREATE_S_AND_T = False
