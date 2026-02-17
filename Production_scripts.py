@@ -32,10 +32,10 @@ from Libs.Input_generation import  make_out_all_spikes_par, par_w_step
 #%% Global Settings and Configuration
 MONK_FLAG = 'C' # Options: 'N' or 'C'
 
-CREATE_INPUTS = False # if you remake inputs you should also do weights, offsets,scale, and thresholds.
+CREATE_INPUTS = True # if you remake inputs you should also do weights, offsets,scale, and thresholds.
 SAVE_INPUTS = False
 
-CREATE_W_AND_O = False
+CREATE_W_AND_O = True
 SAVE_W_AND_O = False
 
 CREATE_S_AND_T = False
@@ -49,7 +49,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(me
 
 n_cores = multiprocessing.cpu_count()-2 #number of core for parallel processing
 logging.info("CPU usage: %d/%d", n_cores, multiprocessing.cpu_count())
-num_iters = 3 # number of iterations for differential evolution
+num_iters = 500 # number of iterations for differential evolution
 t00 = wall_time()
 # Paths and file suffixes
 CODE_DIR = os.getcwd()
@@ -253,13 +253,13 @@ if CREATE_S_AND_T:
     
     reps = [0,20]#make actual hist for comparison 
     actual_spikes= r_allL[0]#first unit to init
-    [actual_hist,d,e,n_bins] =  make_norm_histos_nbins(
+    [actual_hist,d,e,n_bins,f] =  make_norm_histos_nbins(
         actual_spikes,events,reps,4,o_binwidth=0.005)
     actual_hist = np.zeros(
         [num_units, actual_hist.shape[0], actual_hist.shape[1]])
     for u in range(num_units):
         actual_spikes= r_allL[u]
-        [actual_hist[u, :, :], d, e, n_bins] = make_norm_histos_nbins(
+        [actual_hist[u, :, :], d, e, n_bins, f] = make_norm_histos_nbins(
             actual_spikes, events, reps, 4, n_bins, o_binwidth=0.005)
     av_FR = np.mean(actual_hist, axis=(2, 1))
 

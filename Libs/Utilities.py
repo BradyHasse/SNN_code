@@ -28,8 +28,8 @@ from Libs.Helper_Functions import plthist, spike_cause_count_v4,spike_cause_pot,
 from Libs.Helper_Functions import spike_cause_FR_W, spike_cause_base,spike_cause_FR_W_all
 
 #%% which nhp
-# Monk = 'N'
-Monk = 'C'
+Monk = 'N'
+# Monk = 'C'
 
 #%% set up loaded in files
 if Monk == 'N':
@@ -137,11 +137,11 @@ colors90 = np.roll(colors90,1,axis=(0))
 modscore = []
 reps = [20,40]#make actual hist for comparison 
 actual_spikes= r_allL[0]#first unit to init
-[actual_hist,d,e,nbins] =  make_norm_histos_nbins(actual_spikes,events,reps,4,o_binwidth=0.005)
+[actual_hist,d,e,nbins, _] =  make_norm_histos_nbins(actual_spikes,events,reps,4,o_binwidth=0.005)
 actual_hist = np.zeros([num_units, actual_hist.shape[0], actual_hist.shape[1]])
 for u in range(num_units):
     actual_spikes= r_allL[u]
-    [actual_hist[u,:,:],d,e,nbins] = make_norm_histos_nbins(actual_spikes,events,reps,4,o_binwidth=0.005)
+    [actual_hist[u,:,:],d,e,nbins,_] = make_norm_histos_nbins(actual_spikes,events,reps,4,o_binwidth=0.005)
     r2scores = np.corrcoef(np.squeeze(actual_hist[u,:,:]).T)**2#to see if unit was modulated.
     modscore.append(np.mean(np.append(np.diag(r2scores,k=1), r2scores[-1,0])))
     
@@ -159,13 +159,17 @@ sio.savemat(CodeDir+'/Data/Monk'+Monk+'_r-score_'+filesuffix[:-3]+'mat',sdata)
 reps = [0, len(inp_indices[0][0])]
 [histo,xax_labels,mean_ev] =  make_norm_histos(r_allL[0],events,reps,4,o_binwidth=0.005)
 histo_all = np.zeros([histo.shape[0], histo.shape[1], num_units])
+srates_all = np.zeros([histo.shape[1], reps[1], histo.shape[0], num_units])
 for unit in range(num_units):#takes a few seconds
-    [histo_all[:,:,unit],xax_labels,mean_ev] =  make_norm_histos(r_allL[unit],events,reps,4,o_binwidth=0.005)
-    
+    [histo_all[:,:,unit],xax_labels,mean_ev,nbins,srates_all[:,:,:,unit]] = make_norm_histos_nbins(r_allL[unit],events,reps,4,o_binwidth=0.005)
+
 
 sdata = {'histo_all':histo_all, 'xax_labels':xax_labels, 'mean_ev':mean_ev}
 sio.savemat(CodeDir+'/Data/Monk'+Monk+'_histo_all_actual'+filesuffix[:-3]+'mat',sdata)
+sdata = {'srates_all':srates_all,'events':events,'event_names':event_names}
+sio.savemat(CodeDir+'/Data/Monk'+Monk+'_histo_all_actual_ind_trial'+filesuffix[:-3]+'mat',sdata)
 
+del srates_all, sdata #lots of memory?
 #%%%Figure 3
 if (Monk=='C'):
     unit = 58

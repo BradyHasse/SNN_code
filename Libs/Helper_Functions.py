@@ -483,7 +483,7 @@ def make_norm_histos_nbins(in_array, events, reps, numsegs, nbins=[], o_binwidth
     timax = np.concatenate([np.full(int(nbins[i]), binwidths[0, i]) for i in range(len(nbins))])
     timax = np.cumsum(timax) - timax[0]
 
-    return mr, timax, mean_ev, nbins
+    return mr, timax, mean_ev, nbins, srates
 
 #%% make_histos
 def make_histos(in_array, ev, mode):    
@@ -682,7 +682,7 @@ Returns:
     PH = np.zeros(actual_hist.shape)
     
     for u in range(num_units):
-        [PH[u,:,:],d,e,nbins] = make_norm_histos_nbins(out_all_spikes_[u],events[:,reps[0]:reps[1],:],list(np.array(reps)-reps[0]),4,nbins,o_binwidth=0.005) 
+        [PH[u,:,:],d,e,nbins,f] = make_norm_histos_nbins(out_all_spikes_[u],events[:,reps[0]:reps[1],:],list(np.array(reps)-reps[0]),4,nbins,o_binwidth=0.005) 
 
     PH = PH[:,20:-20,:]
     actual_hist = np.copy(actual_hist[:,20:-20,:])
