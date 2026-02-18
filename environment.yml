@@ -1,0 +1,15 @@
+name: Brian2
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - brian2
+  - spyder
+  - pytest
+  - matplotlib
+  - pip
+  - bayesian-optimization
+  - scikit-optimize
+  - scikit-learn
+prefix: C:\Users\BAH150\Anaconda3\envs\Brian2
