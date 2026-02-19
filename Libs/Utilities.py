@@ -33,20 +33,23 @@ Monk = 'N'
 
 #%% set up loaded in files
 if Monk == 'N':
-    filesuffix = '_03-07-2024-13-30-06.npy'
+    datesuffix = '03-07-2024-13-30-06'#change this if you create new inputs/weights
+    regensuffix = '03-07-2024-13-30-06'#set this after making new outputs, from running Production_scripts.py
     spkstruct = sio.loadmat(CodeDir+'/Data/MonkN359Selected.mat')
+    
 if Monk == 'C':    
-    filesuffix = '_28-06-2024-15-09-50.npy'
+    datesuffix = '28-06-2024-15-09-50'#change this if you create new inputs/weights
+    regensuffix = '28-06-2024-15-09-50'#set this after making new outputs, from running Production_scripts.py
     spkstruct = sio.loadmat(CodeDir+'/Data/MonkCDataSelected.mat')
-    
-indFile = CodeDir+'/Data/Monk' + Monk + '_input_indices' + filesuffix[:-3]+'pickle'
-spkFile = CodeDir+'/Data/Monk' + Monk + '_input_spikes' + filesuffix[:-3]+'pickle'
-wFile = CodeDir+'/Data/Monk' + Monk + '_Weights' + filesuffix
-offsetFile = CodeDir+'/Data/Monk' + Monk + '_W_offset' + filesuffix
-scalethreshFile = CodeDir+'/Data/Monk' + Monk + '_RMSE_Scale_Thresh' + filesuffix
-OspkFile = CodeDir+'/Data/Monk' + Monk + '_output_spikes' + filesuffix
-OpotFile = CodeDir+'/Data/Monk' + Monk + '_output_potential' + filesuffix
-    
+DATA_DIR = f'{CodeDir}/Data/Monk{Monk}'
+
+indFile = f'{DATA_DIR}/Monk{Monk}_input_indices_{datesuffix}.pickle'
+spkFile = f'{DATA_DIR}/Monk{Monk}_input_spikes_{datesuffix}.pickle'
+wFile = f'{DATA_DIR}/Monk{Monk}_Weights_{datesuffix}.npy'
+offsetFile = f'{DATA_DIR}/Monk{Monk}_W_offset_{datesuffix}.npy'
+scalethreshFile = f'{DATA_DIR}/Monk{Monk}_RMSE_Scale_Thresh_{datesuffix}.npy'
+OspkFile = f'{DATA_DIR}/Monk{Monk}_output_spikes_{regensuffix}.npy'
+OpotFile = f'{DATA_DIR}/Monk{Monk}_output_potential_{regensuffix}.npy'
 
 #%%Get Data  for Monkey C or N
 all_units = spkstruct['spk_all']
@@ -87,7 +90,7 @@ for i in range(inp_spikes_np.shape[0]):
             inp_spikes_np[i,ii,iii] = inp_spikes_np[i,ii,iii]/second
 inp_indices_np = np.array(inp_indices,dtype=object)
 sdata = {'inp_spikes':inp_indices_np,'inp_indices':inp_indices_np}
-sio.savemat(CodeDir+'/Data/Monk'+Monk+'_inputs'+filesuffix[:-3]+'mat',sdata)
+sio.savemat(f'{DATA_DIR}/Monk{Monk}_inputs_{regensuffix}.mat',sdata)
 #%% Weights
 #Load in previously created weights and offsets
 # Get stored offsets that came from next code section
@@ -149,8 +152,7 @@ modscore = np.array(modscore)
 RMSEneur, correlation, correlation2 = score_run(actual_hist, num_units, oas[:,:,reps[0]:reps[1]].tolist(), events, reps, nbins)
 
 sdata = {'correlation':correlation2,'modscore':modscore}
-sio.savemat(CodeDir+'/Data/Monk'+Monk+'_r-score_'+filesuffix[:-3]+'mat',sdata)
-
+sio.savemat(f'{DATA_DIR}/Monk{Monk}_r-score_{regensuffix}.mat', sdata)
 
 #%% Prepare matlab files for figures.
 
@@ -165,10 +167,9 @@ for unit in range(num_units):#takes a few seconds
 
 
 sdata = {'histo_all':histo_all, 'xax_labels':xax_labels, 'mean_ev':mean_ev}
-sio.savemat(CodeDir+'/Data/Monk'+Monk+'_histo_all_actual'+filesuffix[:-3]+'mat',sdata)
+sio.savemat(f'{DATA_DIR}/Monk{Monk}_histo_all_actual_{regensuffix}.mat',sdata)
 sdata = {'srates_all':srates_all,'events':events,'event_names':event_names}
-sio.savemat(CodeDir+'/Data/Monk'+Monk+'_histo_all_actual_ind_trial'+filesuffix[:-3]+'mat',sdata)
-
+sio.savemat(f'{DATA_DIR}/Monk{Monk}_histo_all_actual_ind_trial_{regensuffix}.mat',sdata)
 del srates_all, sdata #lots of memory?
 #%%%Figure 3
 if (Monk=='C'):
@@ -182,7 +183,7 @@ inexampleind = inp_indices_np[1,0,0]
 inexample = inexample[inexampleind == 0]
 
 sdata = {'outexample':outexample, 'inexample':inexample}
-sio.savemat(CodeDir+'/Data/Monk'+Monk+'_example_weight_training'+filesuffix[:-3]+'mat',sdata)
+sio.savemat(f'{DATA_DIR}/Monk{Monk}_example_weight_training_{regensuffix}.mat',sdata)
 
 #%%%%A)
 sspikes = []
@@ -205,20 +206,22 @@ for inp_group in range(1,4):
         histo =  np.append(histo, np.expand_dims(make_norm_histos(sspikes[inp_group],events[:,reps[0]:reps[1],:],list(np.array(reps)-reps[0]),4,o_binwidth=0.005)[0],2), axis=2)
 
 sdata = {'histoin':histo, 'xax_labelsin':xax_labels, 'mean_evin':mean_ev, }
-sio.savemat(CodeDir+'/Data/Monk'+Monk+'_input_FR'+filesuffix[:-3]+'mat',sdata)
+sio.savemat(f'{DATA_DIR}/Monk{Monk}_input_FR_{regensuffix}.mat',sdata)
 
 #%%%%B)
 weights = weight_multi_3d[:,:,unit]
 weights = np.multiply(np.tile(np.expand_dims(BestValues[unit,:4],1),[1,num_neurons]),weights)
 sdata = {'weights':weights}
-sio.savemat(CodeDir+'/Data/Monk'+Monk+'_weights_U'+str(unit)+'_'+filesuffix[:-3]+'mat',sdata)
+sio.savemat(f'{DATA_DIR}/Monk{Monk}_weights_U{unit}_{regensuffix}.mat',sdata)
+
 weights_all = []
 for u in range(num_units):
     weights = weight_multi_3d[:,:,u]
     weights_all.append(np.multiply(np.tile(np.expand_dims(BestValues[u,:4],1),[1,num_neurons]),weights))
     
 sdata = {'weights':np.array(weights_all)}
-sio.savemat(CodeDir+'/Data/Monk'+Monk+'_weights_all'+filesuffix[:-3]+'mat',sdata)
+sio.savemat(f'{DATA_DIR}/Monk{Monk}_weights_all_{regensuffix}.mat',sdata)
+
 #%%%%C)
 #done in figure 1
 #%%%Figure 4
@@ -234,13 +237,13 @@ for rep in range(oas.shape[2]):
 testmat3 = np.append(testmat3, testmat,axis = 0)
 
 sdata = {'mev':mev, 'centers':centers, 'sta_pot':testmat3,'threshold':BestValues[unit,4]}
-sio.savemat(CodeDir+'/Data/Monk'+Monk+'_STA_pot_U'+str(unit)+'_'+filesuffix[:-3]+'mat',sdata)
+sio.savemat(f'{DATA_DIR}/Monk{Monk}_STA_pot_U{unit}_{regensuffix}.mat',sdata)
 #%%%%B)
 reps = [0, len(inp_indices[0][0])]
 [histo,xax_labels,mean_ev] =  make_norm_histos(out_all_spikes[unit],events,reps,4,o_binwidth=0.005)
 
 sdata = {'histo':histo, 'xax_labels':xax_labels, 'mean_ev':mean_ev}
-sio.savemat(CodeDir+'/Data/Monk'+Monk+'_plthist_U'+str(unit)+'_'+filesuffix[:-3]+'mat',sdata)
+sio.savemat(f'{DATA_DIR}/Monk{Monk}_plthist_U{unit}_{regensuffix}.mat',sdata)
     
 #%%%%C-F)
 bintimes = np.empty(events[:,:,0].shape,dtype='object')
@@ -280,20 +283,18 @@ for w in range(len(winsizs)):
             for i in range(len(out_sample)):
                 out_sample_mat[e][t][w] = out_sample_mat[e][t][w]+np.size(out_sample[i])
 
-
-
-
 sdata = {'EPermeg1':EPermeg[0], 'EPermeg2':EPermeg[1], 'EPermeg3':EPermeg[2]}
-sio.savemat(CodeDir+'/Data/Monk'+Monk+'_EPermeg1_U'+str(unit)+'_'+str(np.round(winsiz,decimals=1))+'ms' + filesuffix[:-3]+'mat',sdata)
+sio.savemat(f'{DATA_DIR}/Monk{Monk}_EPermeg1_U{unit}_{winsiz}ms_{regensuffix}.mat',sdata)
 
 sdata = {'EFRsmeg1':EFRsmeg[0], 'EFRsmeg2':EFRsmeg[1], 'EFRsmeg3':EFRsmeg[2]}
-sio.savemat(CodeDir+'/Data/Monk'+Monk+'_EFRsmeg1_U'+str(unit)+'_'+str(np.round(winsiz,decimals=1))+'ms' + filesuffix[:-3]+'mat',sdata)
+sio.savemat(f'{DATA_DIR}/Monk{Monk}_EFRsmeg1_U{unit}_{winsiz}ms_{regensuffix}.mat',sdata)
 
 sdata = {'EAccmeg1':EAccmeg[0], 'EAccmeg2':EAccmeg[1], 'EAccmeg3':EAccmeg[2]}
-sio.savemat(CodeDir+'/Data/Monk'+Monk+'_EAccmeg1_U'+str(unit)+'_'+str(np.round(winsiz,decimals=1))+'ms' + filesuffix[:-3]+'mat',sdata)
+sio.savemat(f'{DATA_DIR}/Monk{Monk}_EAccmeg1_U{unit}_{winsiz}ms_{regensuffix}.mat',sdata)
 
 sdata = {'out_sample_mat1':out_sample_mat[0], 'out_sample_mat2':out_sample_mat[1], 'out_sample_mat3':out_sample_mat[2]}
-sio.savemat(CodeDir+'/Data/Monk'+Monk+'_out_sample_mat_U'+str(unit)+'_'+str(np.round(winsiz,decimals=1))+'ms' + filesuffix[:-3]+'mat',sdata)
+sio.savemat(f'{DATA_DIR}/Monk{Monk}_out_sample_mat_U{unit}_{winsiz}ms_{regensuffix}.mat',sdata)
+
 #%%%%G) the stats part.
 reps = [0, events.shape[1]]
 winsiz = [0.1, 20]
@@ -311,7 +312,7 @@ for w in range(len(winsiz)):
 EAccmeg = np.array(EAccmeg)
 EPermeg = np.array(EPermeg)
 sdata = {'Counts':EAccmeg, 'Percents':EPermeg}
-sio.savemat(CodeDir+'/Data/Monk'+Monk+'_input_spike_counts' + filesuffix[:-3]+'mat',sdata)
+sio.savemat(f'{DATA_DIR}/Monk{Monk}_input_spike_counts_{regensuffix}.mat',sdata)
 
 reps = [0, events.shape[1]]
 winsiz = 20 #repeated for 0.1 and 20 to do the trigger and buildup. Also changed the save name.
@@ -334,16 +335,13 @@ for unit in range(num_units):#takes a few seconds
                 out_sample_mat[e][t][unit] = out_sample_mat[e][t][unit]+np.size(out_sample[i])
     
 sdata = {'EPermeg1':EPermeg[0], 'EPermeg2':EPermeg[1], 'EPermeg3':EPermeg[2]}
-sio.savemat(CodeDir+'/Data/Monk'+Monk+'_EPermeg1_All_Units_'+str(np.round(winsiz,decimals=1))+'ms' + filesuffix[:-3]+'mat',sdata)
-
-# sdata = {'EFRsmeg1':EFRsmeg[0], 'EFRsmeg2':EFRsmeg[1], 'EFRsmeg3':EFRsmeg[2]}
-# sio.savemat(CodeDir+'/Data/Monk'+Monk+'_EFRsmeg1_All_Units_'+str(np.round(winsiz,decimals=1))+'ms' + filesuffix[:-3]+'mat',sdata)
+sio.savemat(f'{DATA_DIR}/Monk{Monk}_EPermeg1_All_Units_{winsiz}ms_{regensuffix}.mat',sdata)
 
 sdata = {'EAccmeg1':EAccmeg[0], 'EAccmeg2':EAccmeg[1], 'EAccmeg3':EAccmeg[2]}
-sio.savemat(CodeDir+'/Data/Monk'+Monk+'_EAccmeg1_All_Units_'+str(np.round(winsiz,decimals=1))+'ms' + filesuffix[:-3]+'mat',sdata)
+sio.savemat(f'{DATA_DIR}/Monk{Monk}_EAccmeg1_All_Units_{winsiz}ms_{regensuffix}.mat',sdata)
 
 sdata = {'out_sample_mat1':out_sample_mat[0], 'out_sample_mat2':out_sample_mat[1], 'out_sample_mat3':out_sample_mat[2]}
-sio.savemat(CodeDir+'/Data/Monk'+Monk+'_out_sample_mat_All_Units_'+str(np.round(winsiz,decimals=1))+'ms' + filesuffix[:-3]+'mat',sdata)
+sio.savemat(f'{DATA_DIR}/Monk{Monk}_out_sample_mat_All_Units_{winsiz}ms_{regensuffix}.mat',sdata)
 
 reps = [0, events.shape[1]]
 winsiz = 20
@@ -384,9 +382,7 @@ for s in range(infoint8All.shape[0]):
     FRsAll[s,1] = weight_multi_3d[infoint8All[s,[0]], infoint8All[s,[1]], infoint8All[s,[4]]]*BestValues[infoint8All[s,[4]],infoint8All[s,[0]]]
 
 sdata = {'FRsAll':FRsAll, 'infoint8All':infoint8All}
-sio.savemat(CodeDir+'/Data/Monk'+Monk+'_triggerFRW' + filesuffix[:-3]+'mat',sdata)                
-            
-
+sio.savemat(f'{DATA_DIR}/Monk{Monk}_triggerFRW_{regensuffix}.mat',sdata)  
 
 #%%%Figure 5
 #%%%%A)
@@ -398,7 +394,38 @@ for unit in range(num_units):#takes a few seconds
     
 
 sdata = {'histo_all':histo_all, 'xax_labels':xax_labels, 'mean_ev':mean_ev}
-sio.savemat(CodeDir+'/Data/Monk'+Monk+'_histo_all'+filesuffix[:-3]+'mat',sdata)
+sio.savemat(f'{DATA_DIR}/Monk{Monk}_histo_all_{regensuffix}.mat',sdata)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -555,8 +582,8 @@ n_cores = multiprocessing.cpu_count()-2 #number of core for parallel processing
 from Libs.Input_generation import make_individual_input_spikes_par
 
 
-IND_FILE_S = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'Monk{Monk}_input_indices_no-speed{filesuffix[:-4]}.pickle')
-SPK_FILE_S = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'Monk{Monk}_input_spikes_no-speed{filesuffix[:-4]}.pickle')
+IND_FILE_S = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'Monk{Monk}_input_indices_no-speed{datesuffix}.pickle')
+SPK_FILE_S = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'Monk{Monk}_input_spikes_no-speed{datesuffix}.pickle')
 
 #Generate input indices array and input spike array
 targ_rep = []
@@ -601,7 +628,7 @@ for i in range(inp_spikes_np.shape[0]):
             inp_spikes_np[i,ii,iii] = inp_spikes_np[i,ii,iii]/second
 inp_indices_np = np.array(inp_indices,dtype=object)
 sdata = {'inp_spikes':inp_indices_np,'inp_indices':inp_indices_np}
-sio.savemat(CodeDir+'/Data/Monk'+Monk+'/_no-speed_inputs'+filesuffix[:-3]+'mat',sdata)
+sio.savemat(CodeDir+'/Data/Monk'+Monk+'/_no-speed_inputs_'+datesuffix+'.mat',sdata)
 
 
 if (Monk=='C'):
@@ -628,7 +655,7 @@ for inp_group in range(1,4):
         histo =  np.append(histo, np.expand_dims(make_norm_histos(sspikes[inp_group],events[:,reps[0]:reps[1],:],list(np.array(reps)-reps[0]),4,o_binwidth=0.005)[0],2), axis=2)
 
 sdata = {'histoin':histo, 'xax_labelsin':xax_labels, 'mean_evin':mean_ev, }
-sio.savemat(CodeDir+'/Data/Monk'+Monk+'/_no-speed_input_FR'+filesuffix[:-3]+'mat',sdata)
+sio.savemat(CodeDir+'/Data/Monk'+Monk+'/_no-speed_input_FR_'+datesuffix+'.mat',sdata)
 
 
 #%% Self contained block. Only need to run the initial lines. 
@@ -646,7 +673,7 @@ rep_start = 0
 rep_end = len(inp_indices[0][0])
 combinations = np.array(list(itertools.product([True, False], repeat=4)), dtype=bool)
 for combo in range(combinations.shape[0]):
-    OSP_FILE_S = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'combo{combo+1}_no-speed_output_spikes{filesuffix}')
+    OSP_FILE_S = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'combo{combo+1}_no-speed_output_spikes_{datesuffix}.npy')
     params = np.copy(BestValues)
     copied_indices = copy.deepcopy(inp_indices)
     copied_spikes = copy.deepcopy(inp_spikes)
@@ -679,8 +706,8 @@ for combo in range(combinations.shape[0]):
          
 reps = [0, len(inp_indices[0][0])]         
 for combo in range(combinations.shape[0]):
-    OspkFile = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'combo{combo+1}_no-speed_output_spikes{filesuffix}')
-    histo_File = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'combo{combo+1}_no-speed_output_hist{filesuffix[:-4]}.mat')
+    OspkFile = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'combo{combo+1}_no-speed_output_spikes{datesuffix}.npy')
+    histo_File = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'combo{combo+1}_no-speed_output_hist{datesuffix}.mat')
 
     with open(OspkFile, 'rb') as f:
             oas = np.load(f,allow_pickle=True).tolist()
@@ -716,7 +743,7 @@ rep_start = 0
 rep_end = len(inp_indices[0][0])
 combinations = np.array(list(itertools.product([True, False], repeat=4)), dtype=bool)
 for combo in range(combinations.shape[0]):
-    OSP_FILE_S = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'combo{combo+1}_no-speed_output_pot_unit{str(unit)}{filesuffix[:-3]}mat')
+    OSP_FILE_S = os.path.join(CodeDir, 'Data', f'Monk{Monk}', f'combo{combo+1}_no-speed_output_pot_unit{str(unit)}_{datesuffix}.mat')
     params = np.copy(BestValues)
     copied_indices = copy.deepcopy(inp_indices)
     copied_spikes = copy.deepcopy(inp_spikes)

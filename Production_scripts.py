@@ -41,8 +41,8 @@ SAVE_W_AND_O = False
 CREATE_S_AND_T = False
 SAVE_S_AND_T = False
 
-CREATE_OUTPUTS = False
-SAVE_OUTPUTS = False
+CREATE_OUTPUTS = True
+SAVE_OUTPUTS = True
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
