@@ -3,16 +3,17 @@ CodeDir = 'C:\Users\BAH150\.spyder-py3\Brian2\Brady';  % Set up the directory he
 addpath([CodeDir '\MatlabCode'])  %Where do all of the functions live?
 ClearCloseClc()
 % Set up environment variables and constants
-Monk = 'C';  % Set the monk up here. Options: 'C' or 'N'
+Monk = 'N';  % Set the monk up here. Options: 'C' or 'N'
 [colors, MI, Mkind, TargetDir_N, PD_N, PD_N2] = setupEnvironment(Monk, CodeDir);
 
 %% load in data for PCA from actual (Figure 1)
 ClearCloseClc()
-histo_allA = importdata([CodeDir,'\Data\Monk', Monk, '_histo_all_actual_', MI{2,Mkind}, '.mat']);
-histo_allP = importdata([CodeDir,'\Data\Monk', Monk, '_histo_all_', MI{2,Mkind}, '.mat']);
+
+histo_allA = importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_histo_all_actual_%s.mat', CodeDir, Monk, Monk, MI{2,Mkind}));
+histo_allP = importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_histo_all_%s.mat', CodeDir, Monk, Monk, MI{2,Mkind}));
 histo_all = histo_allA.histo_all;%  #bins x #targets x #units - average actual    firing rates
 histo_allP = histo_allP.histo_all;% #bins x #targets x #units - average predicted firing rates
-STA = importdata([CodeDir,'\Data\Monk',Monk,'_STA_pot_',MI{1,Mkind},'__',MI{2,Mkind},'.mat']);
+STA = importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_STA_pot_%s_%s.mat', CodeDir, Monk, Monk,MI{1,Mkind}, MI{2,Mkind}));
 
 mean_ev = histo_allA.mean_ev;
 xax_labels = histo_allA.xax_labels;
@@ -48,8 +49,8 @@ for i = 1:2% for actual and predicted
 end
 %% load in data for input FR, weights, and actual vs predicted FR (Figure 3)
 ClearCloseClc()
-input_FR = importdata([CodeDir,'\Data\Monk',Monk,'_input_FR_',MI{2,Mkind},'.mat']);
-weights = importdata([CodeDir,'\Data\Monk',Monk,'_weights_all_',MI{2,Mkind},'.mat']);
+input_FR = importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_input_FR_%s.mat', CodeDir, Monk, Monk, MI{2,Mkind}));
+weights = importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_weights_all_%s.mat', CodeDir, Monk, Monk, MI{2,Mkind}));
 histoin = input_FR.histoin;% #bins x #targets x #inputgroups - average input firing rates for one example input unit from each group
 mean_evin = input_FR.mean_evin;
 xax_labelsin = input_FR.xax_labelsin;
@@ -71,10 +72,10 @@ plotFiringRates(PD_N2*(180/pi), weights , ylimset, 0*mean_evin([7,12,10]), 'Weig
 %done in code for figure 1
 %% load in data for STA figure and predicted spikes histogram (Figure 4)
 ClearCloseClc()
-STA = importdata([CodeDir,'\Data\Monk',Monk,'_STA_pot_',MI{1,Mkind},'__',MI{2,Mkind},'.mat']);
-causal_in = importdata([CodeDir,'\Data\Monk',Monk,'_EPermeg1_',MI{1,Mkind},'_20ms_',MI{2,Mkind},'.mat']);
-CTS_in = importdata([CodeDir,'\Data\Monk',Monk,'_EAccmeg1_',MI{1,Mkind},'_20ms_',MI{2,Mkind},'.mat']);
-weights = importdata([CodeDir,'\Data\Monk',Monk,'_weights_',MI{1,Mkind},'__',MI{2,Mkind},'.mat']);
+STA = importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_STA_pot_%s_%s.mat', CodeDir, Monk, Monk,MI{1,Mkind}, MI{2,Mkind}));
+causal_in = importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_EPermeg1_%s_20ms_%s.mat', CodeDir, Monk, Monk,MI{1,Mkind}, MI{2,Mkind}));
+CTS_in =    importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_EAccmeg1_%s_20ms_%s.mat', CodeDir, Monk, Monk,MI{1,Mkind}, MI{2,Mkind}));
+weights =   importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_weights_%s_%s.mat', CodeDir, Monk, Monk,MI{1,Mkind}, MI{2,Mkind}));
 
 sta = STA.sta_pot;
 threshold = STA.threshold;
@@ -124,15 +125,15 @@ end
 %% Weights and firing rates of inputs triggering an output spike.
 ClearCloseClc()
 
-triggerFRW = importdata([CodeDir,'\Data\Monk',Monk,'_triggerFRW_',MI{2,Mkind},'.mat']);
+triggerFRW = importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_triggerFRW_%s.mat', CodeDir, Monk, Monk, MI{2,Mkind}));
 trigger_histogram(triggerFRW,Monk, CodeDir)
 
 %% analysis of causal inputs
 ClearCloseClc()
 
-All_units_CI = importdata([CodeDir,'\Data\Monk',Monk,'_EPermeg1_All_Units_20ms_',MI{2,Mkind},'.mat']);
-All_units_CTS = importdata([CodeDir,'\Data\Monk',Monk,'_EAccmeg1_All_Units_20ms_',MI{2,Mkind},'.mat']);
-All_weights = importdata([CodeDir,'\Data\Monk',Monk,'_weights_all_',MI{2,Mkind},'.mat']);
+All_units_CI = importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_EPermeg1_All_Units_20ms_%s.mat', CodeDir, Monk, Monk, MI{2,Mkind}));
+All_units_CTS = importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_EAccmeg1_All_Units_20ms_%s.mat', CodeDir, Monk, Monk, MI{2,Mkind}));
+All_weights = importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_weights_all_%s.mat', CodeDir, Monk, Monk, MI{2,Mkind}));
 
 TargetDir_N2 = linspace(0, 2*pi-((2*pi)/16), 16);
 PD_N2 = linspace(0, 2*pi-((2*pi)/90), 90);
@@ -166,14 +167,15 @@ for i = 1:size(AU_CTS_cell,1)
         end
     end
 end
-save([CodeDir '\Data\' 'Monk' Monk '_AU_CTS_cell.mat'],'AU_CTS_cell')
-save([CodeDir '\Data\' 'Monk' Monk '_AU_CI_cell.mat'],'AU_CI_cell')
-save([CodeDir '\Data\' 'Monk' Monk '_AU_MP_cell.mat'],'AU_MP_cell')
+
+save(sprintf('%s\\Data\\Monk%s\\Monk%s_AU_CTS_cell.mat', CodeDir, Monk, Monk),'AU_CTS_cell')
+save(sprintf('%s\\Data\\Monk%s\\Monk%s_AU_CI_cell.mat',  CodeDir, Monk, Monk),'AU_CI_cell')
+save(sprintf('%s\\Data\\Monk%s\\Monk%s_AU_MP_cell.mat',  CodeDir, Monk, Monk),'AU_MP_cell')
 
 %% Global Diagonal test for causal heatmaps
 ClearCloseClc()
 
-AU_MP_cell = importdata([CodeDir '\Data\' 'Monk' Monk '_AU_MP_cell.mat']);
+AU_MP_cell = importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_AU_MP_cell.mat',  CodeDir, Monk, Monk));
 %units x input group x epoch cell, containing 16x16 input unit x target
 
 %innitialise variables for loop
@@ -239,8 +241,8 @@ WorstBestR2 = min(max(r2_diag2,[],[2,3]));
 
 %% contribution subtract expected contribution by chance.
 ClearCloseClc()
-chance = importdata([CodeDir '\Data\' 'Monk' Monk '_input_spike_counts_',MI{2,Mkind},'.mat']);
-causal_in = importdata([CodeDir,'\Data\Monk',Monk,'_EPermeg1_',MI{1,Mkind},'_20ms_',MI{2,Mkind},'.mat']);
+chance = importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_input_spike_counts_%s.mat', CodeDir, Monk, Monk,MI{2,Mkind}));
+causal_in = importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_EPermeg1_%s_20ms_%s.mat', CodeDir, Monk, Monk,MI{1,Mkind},MI{2,Mkind}));
 
 [causal_in2, SCI2] = causalStruct2Mat(causal_in);
 chance2 = chance.Percents;
@@ -268,7 +270,7 @@ end
 
 %% example showing how weights are trained.
 ClearCloseClc()
-EWT = importdata([CodeDir,'\Data\Monk' Monk '_example_weight_training_',MI{2,Mkind},'.mat']);
+EWT = importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_example_weight_training_%s.mat', CodeDir, Monk, Monk,MI{2,Mkind}));
 
 OE = EWT.outexample;
 IE = EWT.inexample;
@@ -336,20 +338,24 @@ saveas(f1,[CodeDir '\Figures\Monk' Monk '_example_weight_train.png'])
 close all
 
 ClearCloseClc()
-histo_allA = importdata([CodeDir,'\Data\Monk', Monk, '_histo_all_actual_', MI{2,Mkind}, '.mat']);
-histo_allP = importdata([CodeDir,'\Data\Monk', Monk, '_histo_all_', MI{2,Mkind}, '.mat']);
+
+histo_allA = importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_histo_all_actual_%s.mat', CodeDir, Monk, Monk, MI{2,Mkind}));
+histo_allP = importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_histo_all_%s.mat', CodeDir, Monk, Monk, MI{2,Mkind}));
 histo_all = histo_allA.histo_all;%  #bins x #targets x #units - average actual    firing rates
 histo_allP = histo_allP.histo_all;% #bins x #targets x #units - average predicted firing rates
-STA = importdata([CodeDir,'\Data\Monk',Monk,'_STA_pot_',MI{1,Mkind},'__',MI{2,Mkind},'.mat']);
+STA = importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_STA_pot_%s_%s.mat', CodeDir, Monk, Monk,MI{1,Mkind}, MI{2,Mkind}));
 
 mean_ev = histo_allA.mean_ev;
 xax_labels = histo_allA.xax_labels;
 
 
+%% Below is unused analysis
+
+
 %% load in data for histograms without input groups
 ClearCloseClc()
 
-STA = importdata([CodeDir,'\Data\Monk',Monk,'_STA_pot_',MI{1,Mkind},'__',MI{2,Mkind},'.mat']);
+STA = importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_STA_pot_%s_%s.mat', CodeDir, Monk, Monk,MI{1,Mkind}, MI{2,Mkind}));
 for i = 1:16
     loadPath = sprintf('%s\\Data\\Monk%s\\combo%i_no-speed_output_hist_%s.mat', CodeDir, Monk,i, MI{2,Mkind});
     
