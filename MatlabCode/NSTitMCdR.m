@@ -38,7 +38,7 @@ for i = 1:2% for actual and predicted
     end
     
     % Save the rotated PCA results
-    save(sprintf('%s\\Data\\Monk%s_rPCA_%s.mat', CodeDir, Monk,AorP), 'rs');
+    save(sprintf('%s\\Data\\Monk%s\\Monk%s_rPCA_%s.mat', CodeDir, Monk,AorP), 'rs');
     
     % Plot the rotated PCA components
     savePath = sprintf('%s\\Figures\\Monk_%s\\rPCA', CodeDir, Monk);

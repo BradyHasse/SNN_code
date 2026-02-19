@@ -23,7 +23,7 @@ h.YBinEdges;
 FRW = struct('Counts',h.BinCounts,'FRbinedges',h.XBinEdges,'Wbinedges',h.YBinEdges,...
     'FR',h.XBinEdges(1:end-1)+diff(h.XBinEdges(1:2)),'W',h.YBinEdges(1:end-1)+diff(h.YBinEdges(1:2)));
 
-save(sprintf('%s\\Data\\Monk%s_FR_W_histdata.mat', CodeDir, Monk),'FRW')
+save(sprintf('%s\\Data\\Monk%s\\Monk%s_FR_W_histdata.mat', CodeDir, Monk),'FRW')
 saveas(f1, sprintf('%s\\Figures\\Monk_%s\\Trigger_Histogram.png', CodeDir, Monk))
 
 close all
