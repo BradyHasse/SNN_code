@@ -1274,4 +1274,46 @@ def make_STA(unit, target, reps, events, spk_pot, pred_spikes, epoch, gauss_cent
     # Compute Spike-Triggered Average (STA)
     STA = win_accum / num_spikes if num_spikes > 0 else win_accum
     return STA
+
+#%% reduce_numpy_array_dimension
+def reduce_numpy_array_dimension(data_dict, target_dim_size=67, new_dim_size=3):
+    """
+    Iterates through a dictionary and reduces the size of a dimension
+    in any contained numpy array if that dimension's size is 67.
+    
+    Args:
+        data_dict (dict): The dictionary containing numpy arrays.
+        target_dim_size (int): The dimension size to look for (67).
+        new_dim_size (int): The new size for that dimension (3).
+    
+    Returns:
+        dict: The updated dictionary with modified arrays.
+    """
+    for key, value in data_dict.items():
+        if isinstance(value, np.ndarray):
+            # Check each dimension for the target size of 67
+            new_shape = list(value.shape)
+            modified = False
+            for i, size in enumerate(new_shape):
+                if size == target_dim_size:
+                    new_shape[i] = new_dim_size
+                    modified = True
+            
+            # If a dimension was modified, apply slicing
+            if modified:
+                # Construct the slicing tuple dynamically
+                slicing_tuple = []
+                for original_size, new_size in zip(value.shape, new_shape):
+                    if original_size == target_dim_size:
+                        slicing_tuple.append(slice(0, new_dim_size))
+                    else:
+                        slicing_tuple.append(slice(None)) # Keep other dimensions as they are
+                
+                # Apply the slice to the array and update the dictionary
+                data_dict[key] = value[tuple(slicing_tuple)]
+                print(f"Modified array '{key}'. New shape: {data_dict[key].shape}")
+    
+    return data_dict
+
+
  

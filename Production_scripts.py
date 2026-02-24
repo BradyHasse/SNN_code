@@ -32,13 +32,13 @@ from Libs.Input_generation import  make_out_all_spikes_par, par_w_step
 #%% Global Settings and Configuration
 MONK_FLAG = 'C' # Options: 'N' or 'C'
 
-CREATE_INPUTS = False # if you remake inputs you should also do weights, offsets,scale, and thresholds.
+CREATE_INPUTS = True # if you remake inputs you should also do weights, offsets,scale, and thresholds.
 SAVE_INPUTS = False
 
-CREATE_W_AND_O = False
+CREATE_W_AND_O = True
 SAVE_W_AND_O = False
 
-CREATE_S_AND_T = False
+CREATE_S_AND_T = True
 SAVE_S_AND_T = False
 
 CREATE_OUTPUTS = True
@@ -62,7 +62,7 @@ if MONK_FLAG == 'N':
     spk_struct = sio.loadmat(os.path.join(CODE_DIR, 'Data', 'MonkN359Selected.mat'))
 elif MONK_FLAG == 'C':    
     file_suffix = '_28-06-2024-15-09-50.npy'
-    spk_struct = sio.loadmat(os.path.join(CODE_DIR, 'Data', 'MonkCDataSelected.mat'))
+    spk_struct = sio.loadmat(os.path.join(CODE_DIR, 'Data', 'MonkCExampleData.mat'))
 else:
     raise ValueError("Invalid MONK_FLAG. Choose 'N' or 'C'.")
     
@@ -289,8 +289,7 @@ if CREATE_S_AND_T:
                 results = p.map(par_w_step, new_iterable)
             
         logging.info(
-            "S_AND_T iteration %i of %i. iteration time: %.2f ",
-            "average time: %.2f total time: %.2f seconds",
+            "S_AND_T iteration %i of %i. iteration time: %.2f average time: %.2f total time: %.2f seconds",
             i+1, num_iters, wall_time()-t1, (wall_time()-t0)/(i+1), wall_time()-t0)
         t1 = wall_time()
         
