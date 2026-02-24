@@ -32,13 +32,13 @@ from Libs.Input_generation import  make_out_all_spikes_par, par_w_step
 #%% Global Settings and Configuration
 MONK_FLAG = 'C' # Options: 'N' or 'C'
 
-CREATE_INPUTS = True # if you remake inputs you should also do weights, offsets,scale, and thresholds.
+CREATE_INPUTS = False # if you remake inputs you should also do weights, offsets,scale, and thresholds.
 SAVE_INPUTS = False
 
-CREATE_W_AND_O = True
+CREATE_W_AND_O = False
 SAVE_W_AND_O = False
 
-CREATE_S_AND_T = True
+CREATE_S_AND_T = False
 SAVE_S_AND_T = False
 
 CREATE_OUTPUTS = True
@@ -62,7 +62,7 @@ if MONK_FLAG == 'N':
     spk_struct = sio.loadmat(os.path.join(CODE_DIR, 'Data', 'MonkN359Selected.mat'))
 elif MONK_FLAG == 'C':    
     file_suffix = '_28-06-2024-15-09-50.npy'
-    spk_struct = sio.loadmat(os.path.join(CODE_DIR, 'Data', 'MonkCExampleData.mat'))
+    spk_struct = sio.loadmat(os.path.join(CODE_DIR, 'Data', 'MonkCDataSelected.mat'))
 else:
     raise ValueError("Invalid MONK_FLAG. Choose 'N' or 'C'.")
     
