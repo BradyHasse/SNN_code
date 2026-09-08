@@ -26,7 +26,6 @@ function surfaces_3x4(mat_pre, k,savePath)
                 colorbar
             end
             if jj == 2
-
                 saveas(f2, sprintf('%s\\emf\\%02ims_inputG%i_epoch%i.emf', savePath, k,i,j), 'meta');
                 saveas(f2, sprintf('%s\\png\\%02ims_inputG%i_epoch%i.png', savePath, k,i,j));
                 close(f2)

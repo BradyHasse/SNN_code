@@ -4,7 +4,7 @@ addpath([CodeDir '\MatlabCode'])  %Where do all of the functions live?
 ClearCloseClc()
 % Set up environment variables and constants
 Monk = 'C';  % Set the monk up here. Options: 'C' or 'N'
-[colors, MI, Mkind, TargetDir_N, PD_N, PD_N2] = setupEnvironment(Monk, CodeDir);
+[colors, MI, Mkind, TargetDir_N, PD_N, PD_N2] = setupEnvironment(Monk, CodeDir);%set example neuron in here
 
 %% load in data for PCA from actual (Figure 1)
 ClearCloseClc()
@@ -22,10 +22,10 @@ xax_labels = histo_allA.xax_labels;
 savePath = sprintf('%s\\Figures\\Monk_%s\\FRs\\', CodeDir, Monk);
 aphist = squeeze(max([histo_all; histo_allP],[],[1,2]));
 ylimset = ceil((aphist+0.05*aphist)./5).*5; ylimset =[zeros(size(ylimset)) ylimset];
-plotFiringRates(xax_labels*1000, histo_all , ylimset, (mean_ev([7,12,10])*1000)-200, 'Firing Rate (spk/sec)', 'Time (msec)', savePath, 'A',colors);
-plotFiringRates(xax_labels*1000, histo_allP, ylimset, (mean_ev([7,12,10])*1000)-200, 'Firing Rate (spk/sec)', 'Time (msec)', savePath, 'P',colors);
+plotFiringRates(xax_labels*1000, histo_all , ylimset, (mean_ev([7,12,10])*1000)-200, 'Firing Rate (spk/sec)', 'Time (msec)', savePath, 'A',colors, MI, Mkind);
+plotFiringRates(xax_labels*1000, histo_allP, ylimset, (mean_ev([7,12,10])*1000)-200, 'Firing Rate (spk/sec)', 'Time (msec)', savePath, 'P',colors, MI, Mkind);
 %with patches
-plotRatesPatches(xax_labels*1000, histo_allP , ylimset, (mean_ev([7,12,10])*1000)-200, 'Firing Rate (spk/sec)', 'Time (msec)', savePath, 'A',colors, STA);
+plotRatesPatches(xax_labels*1000, histo_allP , ylimset, (mean_ev([7,12,10])*1000)-200, 'Firing Rate (spk/sec)', 'Time (msec)', savePath, 'A',colors, STA, MI, Mkind);
 
 %% Perform Rotated PCA on the data
 for i = 1:2% for actual and predicted
@@ -65,7 +65,7 @@ weights = permute(weights,[3,2,1]);
 col2use = [1,0,0,1;0,1,0,1;0,0,1,1;0,0,0,1];
 ylimset = squeeze([min(weights,[],[1,2]),max(weights,[],[1,2])])';
 ylimset = ylimset+diff(ylimset')'*[-0.05 0.05];
-plotFiringRates(PD_N2*(180/pi), weights , ylimset, 0*mean_evin([7,12,10]), 'Weight (a.u)', 'Preferred Direction of Input Unit (deg)', savePath, '_weights',col2use);
+plotFiringRates(PD_N2*(180/pi), weights , ylimset, 0*mean_evin([7,12,10]), 'Weight (a.u)', 'Preferred Direction of Input Unit (deg)', savePath, '_weights',col2use, MI, Mkind);
 
 
 %% make actual vs predicted graphs
@@ -119,7 +119,8 @@ causal_smooth =  circularsmooth(causal_in2 ,10);
 
 %Plot individual imagesc and as subplots
 for k = 1:size(causal_smoothw,3)%for each window length (trigger and build-up)
-    mat_pre = squeeze(causal_smooth(:,:,k,:,:))*100;
+    % mat_pre = squeeze(causal_smooth(:,:,k,:,:))*100; %comment out one of these two
+    mat_pre = squeeze(causal_smoothw(:,:,k,:,:));
     surfaces_3x4(mat_pre, k,savePath)
 end
 %% Weights and firing rates of inputs triggering an output spike.
@@ -250,34 +251,6 @@ max_boot_p = squeeze(max(bootp3));
 max_boot_p_matched = max(diag(max_boot_p));
 max_boot_p_unmatched = mean(max_boot_p(~eye(size(max_boot_p))));
 
-%% contribution subtract expected contribution by chance.
-ClearCloseClc()
-chance = importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_input_spike_counts_%s.mat', CodeDir, Monk, Monk,MI{2,Mkind}));
-causal_in = importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_EPermeg1_%s_20ms_%s.mat', CodeDir, Monk, Monk,MI{1,Mkind},MI{2,Mkind}));
-
-[causal_in2, SCI2] = causalStruct2Mat(causal_in);
-chance2 = chance.Percents;
-chance2 = permute(chance2,[3,4,2,5,1]);
-conmchs = causal_in2-chance2;
-conmchs(isnan(conmchs))=0;
-conmchs3 =  circularsmooth(conmchs ,10);
-
-
-[X,Y] = meshgrid(PD_N(1:90),PD_N(1:90));
-for i = 1:2
-f1 = figure('Position', [-1919 41 1920 963]);
-mat_ = conmchs3(:,:,i,2,2);
-colormap("turbo")
-surf(X*(360/(2*pi)),Y*(360/(2*pi)),mat_,'EdgeColor','none')
-axis([0 360 0 360]);
-pbaspect([1,1,.25])
-% clim(max(abs(mat_),[],'all')*[-1, 1])
-xlabel('input prefered direction (degrees)')
-ylabel('target direction (degrees)')
-saveas(f1,[CodeDir '\Figures\' 'Monk_' Monk '\SurfacePlots\emf\' sprintf('ContributionMinusChance_%02ims', i) '.emf'],'meta')
-saveas(f1,[CodeDir '\Figures\' 'Monk_' Monk '\SurfacePlots\png\' sprintf('ContributionMinusChance_%02ims', i) '.png'])
-close all
-end
 
 %% example showing how weights are trained.
 ClearCloseClc()
@@ -362,6 +335,34 @@ xax_labels = histo_allA.xax_labels;
 
 %% Below is unused analysis
 
+%% contribution subtract expected contribution by chance.
+ClearCloseClc()
+chance = importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_input_spike_counts_%s.mat', CodeDir, Monk, Monk,MI{2,Mkind}));
+causal_in = importdata(sprintf('%s\\Data\\Monk%s\\Monk%s_EPermeg1_%s_20ms_%s.mat', CodeDir, Monk, Monk,MI{1,Mkind},MI{2,Mkind}));
+
+[causal_in2, SCI2] = causalStruct2Mat(causal_in);
+chance2 = chance.Percents;
+chance2 = permute(chance2,[3,4,2,5,1]);
+conmchs = causal_in2-chance2;
+conmchs(isnan(conmchs))=0;
+conmchs3 =  circularsmooth(conmchs ,10);
+
+
+[X,Y] = meshgrid(PD_N(1:90),PD_N(1:90));
+for i = 1:2
+f1 = figure('Position', [-1919 41 1920 963]);
+mat_ = conmchs3(:,:,i,2,2);
+colormap("turbo")
+surf(X*(360/(2*pi)),Y*(360/(2*pi)),mat_,'EdgeColor','none')
+axis([0 360 0 360]);
+pbaspect([1,1,.25])
+% clim(max(abs(mat_),[],'all')*[-1, 1])
+xlabel('input prefered direction (degrees)')
+ylabel('target direction (degrees)')
+saveas(f1,[CodeDir '\Figures\' 'Monk_' Monk '\SurfacePlots\emf\' sprintf('ContributionMinusChance_%02ims', i) '.emf'],'meta')
+saveas(f1,[CodeDir '\Figures\' 'Monk_' Monk '\SurfacePlots\png\' sprintf('ContributionMinusChance_%02ims', i) '.png'])
+close all
+end
 
 %% load in data for histograms without input groups
 ClearCloseClc()

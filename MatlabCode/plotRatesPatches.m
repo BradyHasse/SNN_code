@@ -1,9 +1,17 @@
+function plotRatesPatches(xax_labelsms, histo_data, ylimset, mevms, ylab, xlab, savePath, AvsP,colors, STA, MI, Mkind)
 %Used to plot firing rates with patches showing when each analysis period is
-
-function plotRatesPatches(xax_labelsms, histo_data, ylimset, mevms, ylab, xlab, savePath, AvsP,colors, STA)
     mkdir([savePath 'png\']);
     mkdir([savePath 'emf\']);
     
+    if nargin == 12
+        digits = regexp(MI(1,Mkind), '\d+', 'match', 'once');
+        ex_unit = int32(str2double(digits));
+        histo_data = histo_data(:,:,ex_unit+1);
+        unit_nums = ex_unit;
+    else
+        unit_nums = 1:size(histo_data, 3);
+    end
+
     centers = STA.centers;
     centersms = (squeeze(mean(centers,[1,2]))/10)-200;
 
@@ -24,13 +32,13 @@ function plotRatesPatches(xax_labelsms, histo_data, ylimset, mevms, ylab, xlab, 
         end
 
         axis tight;
-        set(f1.Children, 'box', 'off', 'LineWidth', 3, 'FontSize', 32, 'fontname', 'Arial', 'YLim', ylimset(j,:)+[0,.0001], 'TickDir', 'out');
+        set(f1.Children, 'box', 'off', 'LineWidth', 3, 'FontSize', 32, 'fontname', 'Arial', 'YLim', ylimset(unit_nums(j)+1,:)+[0,.0001], 'TickDir', 'out');
         ylabel(ylab);
         xlabel(xlab);
         
         % Save figures
-        saveas(f1, sprintf('%s\\emf\\histo%s_unit_%02i_patch.emf', savePath, AvsP, j), 'meta');
-        saveas(f1, sprintf('%s\\png\\histo%s_unit_%02i_patch.png', savePath, AvsP, j));
+        saveas(f1, sprintf('%s\\emf\\histo%s_unit_%02i_patch.emf', savePath, AvsP, unit_nums(j)+1), 'meta');
+        saveas(f1, sprintf('%s\\png\\histo%s_unit_%02i_patch.png', savePath, AvsP, unit_nums(j)+1));
 %         pause(1)
         close all;
     end
