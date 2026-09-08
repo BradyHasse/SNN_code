@@ -3,7 +3,7 @@ CodeDir = 'C:\Users\BAH150\.spyder-py3\Brian2\Brady';  % Set up the directory he
 addpath([CodeDir '\MatlabCode'])  %Where do all of the functions live?
 ClearCloseClc()
 % Set up environment variables and constants
-Monk = 'N';  % Set the monk up here. Options: 'C' or 'N'
+Monk = 'C';  % Set the monk up here. Options: 'C' or 'N'
 [colors, MI, Mkind, TargetDir_N, PD_N, PD_N2] = setupEnvironment(Monk, CodeDir);
 
 %% load in data for PCA from actual (Figure 1)
@@ -119,7 +119,7 @@ causal_smooth =  circularsmooth(causal_in2 ,10);
 
 %Plot individual imagesc and as subplots
 for k = 1:size(causal_smoothw,3)%for each window length (trigger and build-up)
-    mat_pre = squeeze(causal_smoothw(:,:,k,:,:));
+    mat_pre = squeeze(causal_smooth(:,:,k,:,:))*100;
     surfaces_3x4(mat_pre, k,savePath)
 end
 %% Weights and firing rates of inputs triggering an output spike.
@@ -200,7 +200,7 @@ for unit = 1:num_units
             total_sum = sum(abs(values),'all',"omitnan");   %sum of all contributions
             ratio(unit,epoch,inputs) = d_sum/total_sum;%how much of the contribution is on the diagonal?
             diagl(unit,epoch,inputs,:) = fr;
-            if any(isnan(values),'all')   %Only select those heatmaps that have no NaNs
+            if any(all(values == 0))   %Only select those heatmaps that contain at least one output spike in all movement directions 
                 ratioNaN(unit,epoch,inputs) = true;
             end
 
@@ -210,7 +210,7 @@ for unit = 1:num_units
 %             y2 = B(1) + B(2)*ideal_movement_matrix(:,1) + B(3)*ideal_movement_matrix(:,2);
 
             %Diagonal Boot Test - prob of diag ratio compared to random
-            iratio = zeros(1000,1);
+            iratio = zeros(10000,1);
             for iter = 1:size(iratio,1)
                 r = randperm(size(fr,1));
                 c = randperm(size(fr,1));
@@ -219,25 +219,36 @@ for unit = 1:num_units
             end
             iratio = iratio/total_sum;  %generate random ratio
             r_order = sort(iratio); %rank order the random ratios
-            [~,I]=min(d_sum-r_order);  %find the closest match of actual to random-ranked ratio
-            bootp(unit,epoch,inputs) = I/1000;
+            I=sum(ratio(unit,epoch,inputs)<r_order);  %find the closest match of actual to random-ranked ratio
+            bootp(unit,epoch,inputs) = (I+1)/(size(iratio,1)+1);
         end
     end
 end
 badunits = all(ratioNaN,[2,3]);
-ratio2 = ratio;bootp2 = bootp;r2_diag2 = r2_diag;
-ratio2(ratioNaN) = NaN;%remove ratios with no spikes in some reach directions
-bootp2(ratioNaN) = NaN;%remove ratios with no spikes in some reach directions
-r2_diag2(ratioNaN) = NaN;%remove ratios with no spikes in some reach directions
-[M,bootpamsk] = max(ratio2,[],[2,3],"omitnan",'linear');%find the best score for each unit.
-bootpamsk = bootpamsk(~isnan(M));%remove those without a spike in reaches to each target
-M = M(~isnan(M));%remove those without a spike in reaches to each target
-BestRankForUnits = bootp(bootpamsk);
-BestR2ForUnits = r2_diag(bootpamsk);
+ratio2 = ratio;bootp2 = bootp;r2_diag2 = r2_diag;ratioNaN2 = ratioNaN;
+% ratio2(ratioNaN) = NaN;%remove ratios with no spikes in some reach directions
+% bootp2(ratioNaN) = NaN;%remove ratios with no spikes in some reach directions
+% r2_diag2(ratioNaN) = NaN;%remove ratios with no spikes in some reach directions
+% [M,bootpamsk] = max(ratio2,[],[2,3],"omitnan",'linear');%find the best score for each unit.
+% bootpamsk = bootpamsk(~isnan(M));%remove those without a spike in reaches to each target
+% M = M(~isnan(M));%remove those without a spike in reaches to each target
+% BestRankForUnits = bootp(bootpamsk);
+% BestR2ForUnits = r2_diag(bootpamsk);
+ratioNaN2 = ratioNaN2(~badunits,:,:);
 bootp2 = bootp2(~badunits,:,:);
+bootp3 = bootp2;
+bootp3(ratioNaN2) = NaN;
 r2_diag2 = r2_diag2(~badunits,:,:);
-WorstBestBoot = min(max(bootp2,[],[2,3]));
-WorstBestR2 = min(max(r2_diag2,[],[2,3]));
+% WorstBestBoot = min(max(bootp2,[],[2,3]));
+% WorstBestR2 = min(max(r2_diag2,[],[2,3]));
+
+mean_boot_p = squeeze(mean(bootp2));
+mean_boot_p_matched = mean(diag(mean_boot_p));
+mean_boot_p_unmatched = mean(mean_boot_p(~eye(size(mean_boot_p))));
+
+max_boot_p = squeeze(max(bootp3));
+max_boot_p_matched = max(diag(max_boot_p));
+max_boot_p_unmatched = mean(max_boot_p(~eye(size(max_boot_p))));
 
 %% contribution subtract expected contribution by chance.
 ClearCloseClc()
