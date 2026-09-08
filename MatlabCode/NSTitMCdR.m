@@ -1,6 +1,6 @@
 %Neural State Transitions in the Motor Cortex during Reaching
 CodeDir = 'C:\Users\BAH150\.spyder-py3\Brian2\Brady';  % Set up the directory here
-addpath([CodeDir '\MatlabCode'])  %Where do all of the functions live?
+addpath([CodeDir '\MatlabCode\util'])  %Where do all of the functions live?
 ClearCloseClc()
 % Set up environment variables and constants
 Monk = 'C';  % Set the monk up here. Options: 'C' or 'N'
