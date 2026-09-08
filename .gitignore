@@ -8,6 +8,8 @@
 *.cdr
 *.pyc
 Original/
+Data/
+Figures/
 BVhist
 old_code.py
 PrevPar
