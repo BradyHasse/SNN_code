@@ -3,7 +3,6 @@ Spiking Neural Network (SNN) modeling and analysis code for "Continuous input dr
 1. Overview
 This repository contains:
 - Python code implementing the spiking neural network (SNN) model and optimization pipeline.
-- MATLAB scripts used to generate manuscript figures.
 - Utilities for reproducing analyses described in the manuscript.
 The Python code generates model outputs and intermediate data that are subsequently used by MATLAB scripts to produce figures.
 
@@ -22,9 +21,6 @@ Python dependencies (see environment.yml):
 - scikit-optimize
 - matplotlib
 - bayesian-optimization
-
-MATLAB
--MATLAB R2023b or newer
 
 Hardware Requirements
 - No non-standard hardware required.
@@ -49,10 +45,7 @@ Step 3 – Create Conda Environment
 Typical installation time: 5–10 minutes on a standard desktop computer.
 
 4. Demo
-Because the manuscript data are not shareable via github, demo data are available:
-	Data/MonkCExampleData.mat
-	Data/MonkNExampleData.mat
-Additional data is avalible upon request from authors. 
+Data are available in the Zenodo archive at 10.5281/zenodo.22101538
 
 Running the Python SNN Code
 	python Production_scripts.py
@@ -67,36 +60,22 @@ Expected runtime:
 Expected output:
 - Saved output files in the working directory (ensure flags to save are toggled on)
 - Printed performance metrics in console
+- A copy of the output files are available on the Zenodo archive 
 
 Generating Figure Inputs
 To generate processed data for SNN figures:
 run Libs/Utilities.py 
-This prepares formatted data used by MATLAB scripts.
+This prepares formatted data used by MATLAB scripts (Zenodo archive)
 
 
-5. Generating Manuscript Figures (MATLAB)
-
-To generate manuscript figures:
-- Open MATLAB R2023b or later.
-- Set working directory to:
-	MatlabCode/code_share
-
-Run each script in this directory.
-- Use MonkeyC or MonkeyN datasets (contact authors for data access).
-
-Additional figures are generated via:
-	MatlabCode/NSTitMCdR.m
-Note: The Python pipeline must be executed prior to running NSTitMCdR figure scripts.
-
-
-6. Instructions for Using the Code on New Data
+7. Instructions for Using the Code on New Data
 
 To use the SNN model on new data:
 	1. Format your input data to match the structure used in Production_scripts.py.
 	2. Replace dataset loading sections accordingly.
 	3. Run: Production_scripts.py
 
-7. License
+8. License
 
 This repository is licensed under the MIT License.
 See LICENSE file for details.
