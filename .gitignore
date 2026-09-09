@@ -7,6 +7,7 @@
 *.pdf
 *.cdr
 *.pyc
+*.zip
 Original/
 Data/
 Figures/
