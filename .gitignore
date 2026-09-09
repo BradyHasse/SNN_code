@@ -9,6 +9,7 @@
 *.pyc
 *.zip
 Original/
+MatlabCode/
 Data/
 Figures/
 BVhist
